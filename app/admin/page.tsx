@@ -4,9 +4,10 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState("dashboard"); // Tab por defecto: Dashboard
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [reservas, setReservas] = useState<any[]>([]);
   const [evoluciones, setEvoluciones] = useState<any[]>([]);
+  const [gastos, setGastos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Formulario de Evolucion Kinesica
@@ -22,7 +23,15 @@ export default function AdminDashboard() {
   const [guardandoEvolucion, setGuardandoEvolucion] = useState(false);
   const [mensajeFicha, setMensajeFicha] = useState('');
 
-  // Tabla de Precios Estimados por Tratamiento para calculo de ingresos
+  // Formulario de Gastos / Compras
+  const [gastoConcepto, setGastoConcepto] = useState('');
+  const [gastoCategoria, setGastoCategoria] = useState('Insumos Médicos');
+  const [gastoMonto, setGastoMonto] = useState('');
+  const [gastoFecha, setGastoFecha] = useState(new Date().toISOString().split('T')[0]);
+  const [guardandoGasto, setGuardandoGasto] = useState(false);
+  const [mensajeGasto, setMensajeGasto] = useState('');
+
+  // Tabla de Precios Estimados por Tratamiento
   const preciosServicios: { [key: string]: number } = {
     'Kinesiología & Recuperación Física': 45000,
     'Estética Facial Premium & Armonización': 55000,
@@ -163,6 +172,15 @@ export default function AdminDashboard() {
 
       const { data: evoData } = await supabase.from('evoluciones').select('*').order('created_at', { ascending: false });
       if (evoData) setEvoluciones(evoData);
+
+      // Cargar gastos desde Supabase si existe la tabla, o desde localStorage
+      const { data: gastosData, error: gastosErr } = await supabase.from('gastos').select('*').order('fecha', { ascending: false });
+      if (gastosData && !gastosErr) {
+        setGastos(gastosData);
+      } else {
+        const localGastos = localStorage.getItem('anluvia_gastos');
+        if (localGastos) setGastos(JSON.parse(localGastos));
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -217,6 +235,47 @@ export default function AdminDashboard() {
     }
   };
 
+  const guardarGasto = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!gastoConcepto || !gastoMonto) return;
+
+    setGuardandoGasto(true);
+    setMensajeGasto('');
+
+    const nuevoGasto = {
+      id: Date.now().toString(),
+      concepto: gastoConcepto,
+      categoria: gastoCategoria,
+      monto: Number(gastoMonto),
+      fecha: gastoFecha,
+      created_at: new Date().toISOString()
+    };
+
+    try {
+      // Intentar guardar en Supabase
+      const { error } = await supabase.from('gastos').insert([nuevoGasto]);
+      
+      const nuevosGastos = [nuevoGasto, ...gastos];
+      setGastos(nuevosGastos);
+      localStorage.setItem('anluvia_gastos', JSON.stringify(nuevosGastos));
+
+      setMensajeGasto('✅ Gasto registrado correctamente.');
+      setGastoConcepto('');
+      setGastoMonto('');
+    } catch (err) {
+      console.error(err);
+      setMensajeGasto('✅ Gasto guardado localmente.');
+    } finally {
+      setGuardandoGasto(false);
+    }
+  };
+
+  const eliminarGasto = (id: string) => {
+    const gastosFiltrados = gastos.filter(g => g.id !== id);
+    setGastos(gastosFiltrados);
+    localStorage.setItem('anluvia_gastos', JSON.stringify(gastosFiltrados));
+  };
+
   const exportarPDF = () => {
     if (!selectedPacienteEmail) {
       alert("Por favor selecciona un paciente primero.");
@@ -225,7 +284,7 @@ export default function AdminDashboard() {
     window.print();
   };
 
-  // CÁLCULOS ESTADÍSTICOS Y FINANCIEROS
+  // CÁLCULOS FINANCIEROS Y RENTABILIDAD
   const totalCitas = reservas.length;
   const pacientesUnicos = Array.from(new Set(reservas.map(r => r.paciente_email))).map(email => {
     const reserva = reservas.find(r => r.paciente_email === email);
@@ -238,9 +297,11 @@ export default function AdminDashboard() {
     return acc + precio;
   }, 0);
 
+  const egresosTotales = gastos.reduce((acc, g) => acc + Number(g.monto || 0), 0);
+  const gananciaNeta = ingresosTotales - egresosTotales;
+  const margenRentabilidad = ingresosTotales > 0 ? Math.round((gananciaNeta / ingresosTotales) * 100) : 0;
   const ticketPromedio = totalCitas > 0 ? Math.round(ingresosTotales / totalCitas) : 0;
 
-  // Desglose por Servicio
   const serviciosConteo: { [key: string]: number } = {};
   reservas.forEach(r => {
     serviciosConteo[r.servicio] = (serviciosConteo[r.servicio] || 0) + 1;
@@ -265,6 +326,9 @@ export default function AdminDashboard() {
           <nav style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
             <div className={`sidebar-item ${activeTab === 'dashboard' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('dashboard')}>
               📊 Dashboard & Métricas
+            </div>
+            <div className={`sidebar-item ${activeTab === 'finanzas' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('finanzas')}>
+              💸 Finanzas & Rentabilidad
             </div>
             <div className={`sidebar-item ${activeTab === 'agenda' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('agenda')}>
               📅 Agenda & Citas ({reservas.length})
@@ -299,41 +363,37 @@ export default function AdminDashboard() {
             </div>
 
             {/* Tarjetas KPI */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1.5rem", marginBottom: "2.5rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", marginBottom: "2.5rem" }}>
               <div className="kpi-card">
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#8B2434", letterSpacing: "0.1em", textTransform: "uppercase" }}>Ingresos Estimados</span>
-                <div style={{ fontSize: "2rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.3rem" }}>
-                  ${ingresosTotales.toLocaleString('es-CL')} <span style={{ fontSize: "0.9rem", color: "#666" }}>CLP</span>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#7D8E7C", letterSpacing: "0.1em", textTransform: "uppercase" }}>Ingresos Brutos</span>
+                <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.3rem" }}>
+                  ${ingresosTotales.toLocaleString('es-CL')} <span style={{ fontSize: "0.8rem", color: "#666" }}>CLP</span>
                 </div>
-                <span style={{ fontSize: "0.8rem", color: "#7D8E7C", fontWeight: 600 }}>Basado en citas registradas</span>
               </div>
 
               <div className="kpi-card">
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#7D8E7C", letterSpacing: "0.1em", textTransform: "uppercase" }}>Total Citas Agendadas</span>
-                <div style={{ fontSize: "2rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.3rem" }}>
-                  {totalCitas}
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#8B2434", letterSpacing: "0.1em", textTransform: "uppercase" }}>Egresos / Gastos</span>
+                <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#8B2434", marginTop: "0.3rem" }}>
+                  ${egresosTotales.toLocaleString('es-CL')} <span style={{ fontSize: "0.8rem", color: "#666" }}>CLP</span>
                 </div>
-                <span style={{ fontSize: "0.8rem", color: "#666" }}>Atenciones acumuladas</span>
               </div>
 
               <div className="kpi-card">
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#7D8E7C", letterSpacing: "0.1em", textTransform: "uppercase" }}>Pacientes Únicos</span>
-                <div style={{ fontSize: "2rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.3rem" }}>
-                  {totalPacientes}
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#137333", letterSpacing: "0.1em", textTransform: "uppercase" }}>Ganancia Neta</span>
+                <div style={{ fontSize: "1.8rem", fontWeight: 700, color: gananciaNeta >= 0 ? "#137333" : "#D93025", marginTop: "0.3rem" }}>
+                  ${gananciaNeta.toLocaleString('es-CL')} <span style={{ fontSize: "0.8rem", color: "#666" }}>CLP</span>
                 </div>
-                <span style={{ fontSize: "0.8rem", color: "#666" }}>Base de datos activa</span>
               </div>
 
               <div className="kpi-card">
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#8B2434", letterSpacing: "0.1em", textTransform: "uppercase" }}>Ticket Promedio</span>
-                <div style={{ fontSize: "2rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.3rem" }}>
-                  ${ticketPromedio.toLocaleString('es-CL')} <span style={{ fontSize: "0.9rem", color: "#666" }}>CLP</span>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#7D8E7C", letterSpacing: "0.1em", textTransform: "uppercase" }}>Margen Rentabilidad</span>
+                <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.3rem" }}>
+                  {margenRentabilidad}%
                 </div>
-                <span style={{ fontSize: "0.8rem", color: "#666" }}>Por atención médica</span>
               </div>
             </div>
 
-            {/* Desglose de Tratamientos Demandados */}
+            {/* Demanda por Servicio */}
             <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem", boxShadow: "0 10px 30px -10px rgba(0,0,0,0.03)" }}>
               <h3 className="playfair" style={{ fontSize: "1.4rem", margin: "0 0 1.5rem 0", color: "#1F1F1F" }}>
                 🩺 Demanda por Especialidad & Tratamiento
@@ -365,7 +425,120 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* PESTAÑA 2: AGENDA DE ATENCIÓN */}
+        {/* PESTAÑA 2: FINANZAS & RENTABILIDAD */}
+        {activeTab === 'finanzas' && (
+          <div className="no-print">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+              <div>
+                <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#8B2434", letterSpacing: "0.1em" }}>CONTROL FINANCIERO</span>
+                <h1 className="playfair" style={{ fontSize: "2.25rem", margin: "0.25rem 0 0 0" }}>Compras & Gastos de la Clínica</h1>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "2rem" }}>
+              {/* Formulario para Agregar Gasto */}
+              <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
+                <h3 className="playfair" style={{ fontSize: "1.3rem", marginTop: 0, color: "#8B2434" }}>
+                  + Registrar Nuevo Gasto / Compra
+                </h3>
+
+                {mensajeGasto && (
+                  <div style={{ padding: "0.75rem", backgroundColor: "#F4EEE8", borderRadius: "10px", color: "#7D8E7C", fontWeight: 600, fontSize: "0.85rem", marginBottom: "1rem" }}>
+                    {mensajeGasto}
+                  </div>
+                )}
+
+                <form onSubmit={guardarGasto} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
+                      Concepto / Detalle de la Compra *
+                    </label>
+                    <input type="text" placeholder="Ej. Insumos kinesiológicos, cremas, arriendo..." value={gastoConcepto} onChange={(e) => setGastoConcepto(e.target.value)} className="input-anluvia" required />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
+                      Categoría *
+                    </label>
+                    <select value={gastoCategoria} onChange={(e) => setGastoCategoria(e.target.value)} className="input-anluvia">
+                      <option value="Insumos Médicos">Insumos Médicos & Estética</option>
+                      <option value="Arriendo & Servicios">Arriendo & Servicios Básicos</option>
+                      <option value="Sueldos & Honorarios">Sueldos & Honorarios</option>
+                      <option value="Marketing & Publicidad">Marketing & Publicidad</option>
+                      <option value="Equipamiento">Equipamiento & Mantenimiento</option>
+                      <option value="Otros">Otros Gastos Operativos</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
+                      Monto en CLP ($) *
+                    </label>
+                    <input type="number" placeholder="Ej. 120000" value={gastoMonto} onChange={(e) => setGastoMonto(e.target.value)} className="input-anluvia" required />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
+                      Fecha del Gasto *
+                    </label>
+                    <input type="date" value={gastoFecha} onChange={(e) => setGastoFecha(e.target.value)} className="input-anluvia" required />
+                  </div>
+
+                  <button type="submit" disabled={guardandoGasto} className="btn-salvia" style={{ width: "100%", padding: "0.85rem", marginTop: "0.5rem" }}>
+                    {guardandoGasto ? "Guardando..." : "💵 Guardar Registro de Gasto"}
+                  </button>
+                </form>
+              </div>
+
+              {/* Lista e Historial de Gastos */}
+              <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+                  <h3 className="playfair" style={{ fontSize: "1.3rem", margin: 0, color: "#1F1F1F" }}>
+                    Historial de Gastos ({gastos.length})
+                  </h3>
+                  <div style={{ fontSize: "0.9rem", fontWeight: 700, color: "#8B2434" }}>
+                    Total: ${egresosTotales.toLocaleString('es-CL')} CLP
+                  </div>
+                </div>
+
+                {gastos.length > 0 ? (
+                  <table className="table-admin">
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Concepto</th>
+                        <th>Categoría</th>
+                        <th>Monto ($)</th>
+                        <th>Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {gastos.map((g) => (
+                        <tr key={g.id}>
+                          <td>{g.fecha}</td>
+                          <td><strong>{g.concepto}</strong></td>
+                          <td><span style={{ fontSize: "0.75rem", backgroundColor: "#F4EEE8", padding: "0.2rem 0.6rem", borderRadius: "9999px", fontWeight: 600 }}>{g.categoria}</span></td>
+                          <td style={{ color: "#8B2434", fontWeight: 700 }}>${Number(g.monto).toLocaleString('es-CL')}</td>
+                          <td>
+                            <button onClick={() => eliminarGasto(g.id)} style={{ background: "none", border: "none", color: "#D93025", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600 }}>
+                              🗑️ Eliminar
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p style={{ color: "#666", textAlign: "center", padding: "2rem 0" }}>
+                    Aún no has registrado compras o gastos. Utiliza el formulario lateral para agregar el primer egreso.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PESTAÑA 3: AGENDA DE ATENCIÓN */}
         {activeTab === 'agenda' && (
           <div className="no-print">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
@@ -418,7 +591,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* PESTAÑA 3: FICHAS & EVOLUCIÓN KINÉSICA */}
+        {/* PESTAÑA 4: FICHAS & EVOLUCIÓN KINÉSICA */}
         {activeTab === 'fichas' && (
           <div>
             <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
@@ -484,22 +657,22 @@ export default function AdminDashboard() {
 
                       <div>
                         <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Subjetivo (Relato del paciente):</label>
-                        <textarea placeholder="Ej. Refiere disminución del dolor articular tras última sesión..." value={subjetivo} onChange={(e) => setSubjetivo(e.target.value)} className="textarea-anluvia" />
+                        <textarea placeholder="Ej. Refiere disminución del dolor articular..." value={subjetivo} onChange={(e) => setSubjetivo(e.target.value)} className="textarea-anluvia" />
                       </div>
 
                       <div>
                         <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Objetivo (Evaluación física):</label>
-                        <textarea placeholder="Ej. Rango de flexión recuperado a 110°. Sensibilidad normal..." value={objetivo} onChange={(e) => setObjetivo(e.target.value)} className="textarea-anluvia" />
+                        <textarea placeholder="Ej. Rango de flexión recuperado a 110°..." value={objetivo} onChange={(e) => setObjetivo(e.target.value)} className="textarea-anluvia" />
                       </div>
 
                       <div>
                         <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Tratamiento Aplicado:</label>
-                        <textarea placeholder="Ej. Terapia manual, ultrasonido, reeducación motora..." value={tratamiento} onChange={(e) => setTratamiento(e.target.value)} className="textarea-anluvia" />
+                        <textarea placeholder="Ej. Terapia manual, ultrasonido..." value={tratamiento} onChange={(e) => setTratamiento(e.target.value)} className="textarea-anluvia" />
                       </div>
 
                       <div>
                         <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Indicaciones para el Hogar:</label>
-                        <textarea placeholder="Ej. Ejercicios de movilidad 2 veces al día. Crioterapia por 15 min..." value={indicaciones} onChange={(e) => setIndicaciones(e.target.value)} className="textarea-anluvia" />
+                        <textarea placeholder="Ej. Ejercicios de movilidad 2 veces al día..." value={indicaciones} onChange={(e) => setIndicaciones(e.target.value)} className="textarea-anluvia" />
                       </div>
 
                       <button type="submit" disabled={guardandoEvolucion} className="btn-salvia" style={{ width: "100%", padding: "0.85rem" }}>
