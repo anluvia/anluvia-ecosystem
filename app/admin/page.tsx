@@ -1,9 +1,13 @@
 'use client';
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("agenda");
+  const [reservas, setReservas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actualizandoId, setActualizandoId] = useState<string | null>(null);
 
   const adminCss = `
     @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap");
@@ -77,8 +81,68 @@ export default function AdminDashboard() {
       border-radius: 9999px;
       font-size: 0.75rem;
       font-weight: 600;
+      display: inline-block;
+    }
+
+    .select-status {
+      padding: 0.35rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid #A7B7A5;
+      background-color: #FFF;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
     }
   `;
+
+  useEffect(() => {
+    cargarReservas();
+  }, []);
+
+  const cargarReservas = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('reservas')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setReservas(data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cambiarEstado = async (id: string, nuevoEstado: string) => {
+    setActualizandoId(id);
+    try {
+      const { error } = await supabase
+        .from('reservas')
+        .update({ estado: nuevoEstado })
+        .eq('id', id);
+
+      if (!error) {
+        setReservas((prev) =>
+          prev.map((r) => (r.id === id ? { ...r, estado: nuevoEstado } : r))
+        );
+      } else {
+        alert("⚠️ No se pudo actualizar el estado.");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActualizandoId(null);
+    }
+  };
+
+  const totalCitas = reservas.length;
+  const confirmadas = reservas.filter((r) => (r.estado || 'Confirmada') === 'Confirmada').length;
+  const enAtencion = reservas.filter((r) => r.estado === 'En Atención').length;
+  const completadas = reservas.filter((r) => r.estado === 'Completada').length;
 
   return (
     <div style={{ backgroundColor: "#FBF9F6", color: "#1F1F1F", fontFamily: "Inter, sans-serif", minHeight: "100vh", display: "flex" }}>
@@ -99,13 +163,7 @@ export default function AdminDashboard() {
               📅 Agenda & Citas
             </div>
             <div className={`sidebar-item ${activeTab === 'pacientes' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('pacientes')}>
-              🩺 Fichas Clínicas
-            </div>
-            <div className={`sidebar-item ${activeTab === 'finanzas' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('finanzas')}>
-              📊 Métricas & Ingresos
-            </div>
-            <div className={`sidebar-item ${activeTab === 'equipo' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('equipo')}>
-              👩‍⚕️ Especialistas
+              🩺 Pacientes ({totalCitas})
             </div>
           </nav>
         </div>
@@ -119,94 +177,130 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      {/* Area Principal */}
+      {/* Área Principal */}
       <main style={{ flex: 1, padding: "2.5rem 3rem", overflowY: "auto" }}>
+        
+        {/* Top Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2.5rem" }}>
           <div>
-            <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#7D8E7C", letterSpacing: "0.1em", textTransform: "uppercase" }}>SEDE PRINCIPAL</span>
-            <h1 className="playfair" style={{ fontSize: "2.25rem", color: "#1F1F1F", margin: "0.25rem 0 0 0" }}>Control de Operaciones</h1>
+            <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#7D8E7C", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+              BASE DE DATOS EN VIVO — SUPABASE
+            </span>
+            <h1 className="playfair" style={{ fontSize: "2.25rem", color: "#1F1F1F", margin: "0.25rem 0 0 0" }}>
+              Control de Operaciones
+            </h1>
           </div>
           <div style={{ display: "flex", gap: "1rem" }}>
-            <button className="btn-salvia">+ Nueva Cita Presencial</button>
-            <button style={{ backgroundColor: "#F4EEE8", color: "#1F1F1F", padding: "0.65rem 1.25rem", borderRadius: "9999px", border: "1px solid #A7B7A5", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }}>
-              📥 Exportar Reporte
+            <button onClick={cargarReservas} className="btn-salvia">
+              🔄 Actualizar Citas
             </button>
+            <a href="/reservar" target="_blank" style={{ backgroundColor: "#F4EEE8", color: "#1F1F1F", padding: "0.65rem 1.25rem", borderRadius: "9999px", border: "1px solid #A7B7A5", fontWeight: 600, fontSize: "0.85rem", textDecoration: "none" }}>
+              + Probador de Citas ↗
+            </a>
           </div>
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid Reales */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1.5rem", marginBottom: "3rem" }}>
           <div className="card-stat">
-            <span style={{ fontSize: "0.8rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.05em" }}>Citas de Hoy</span>
-            <div className="playfair" style={{ fontSize: "2rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.25rem" }}>18 Pacientes</div>
-            <span style={{ fontSize: "0.8rem", color: "#7D8E7C", fontWeight: 600 }}>94% Ocupación</span>
+            <span style={{ fontSize: "0.8rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.05em" }}>Total Reservas</span>
+            <div className="playfair" style={{ fontSize: "2rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.25rem" }}>
+              {totalCitas} Citas
+            </div>
+            <span style={{ fontSize: "0.8rem", color: "#7D8E7C", fontWeight: 600 }}>Registradas en sistema</span>
           </div>
 
           <div className="card-stat">
-            <span style={{ fontSize: "0.8rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.05em" }}>Ingresos del Mes</span>
-            <div className="playfair" style={{ fontSize: "2rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.25rem" }}>$14.280.000</div>
-            <span style={{ fontSize: "0.8rem", color: "#7D8E7C", fontWeight: 600 }}>+12% vs mes anterior</span>
+            <span style={{ fontSize: "0.8rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.05em" }}>Confirmadas</span>
+            <div className="playfair" style={{ fontSize: "2rem", fontWeight: 700, color: "#7D8E7C", marginTop: "0.25rem" }}>
+              {confirmadas} Pacientes
+            </div>
+            <span style={{ fontSize: "0.8rem", color: "#7D8E7C", fontWeight: 600 }}>Listos para atención</span>
           </div>
 
           <div className="card-stat">
-            <span style={{ fontSize: "0.8rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.05em" }}>Pacientes Nuevos</span>
-            <div className="playfair" style={{ fontSize: "2rem", fontWeight: 700, color: "#8B2434", marginTop: "0.25rem" }}>42 Registros</div>
-            <span style={{ fontSize: "0.8rem", color: "#666" }}>Últimos 30 días</span>
+            <span style={{ fontSize: "0.8rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.05em" }}>En Atención</span>
+            <div className="playfair" style={{ fontSize: "2rem", fontWeight: 700, color: "#8B2434", marginTop: "0.25rem" }}>
+              {enAtencion} Pacientes
+            </div>
+            <span style={{ fontSize: "0.8rem", color: "#8B2434", fontWeight: 600 }}>En consulta actual</span>
           </div>
 
           <div className="card-stat">
-            <span style={{ fontSize: "0.8rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.05em" }}>Evaluación Promedio</span>
-            <div className="playfair" style={{ fontSize: "2rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.25rem" }}>4.95 / 5.0</div>
-            <span style={{ fontSize: "0.8rem", color: "#7D8E7C", fontWeight: 600 }}>★ ★ ★ ★ ★</span>
+            <span style={{ fontSize: "0.8rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.05em" }}>Completadas</span>
+            <div className="playfair" style={{ fontSize: "2rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.25rem" }}>
+              {completadas} Atenciones
+            </div>
+            <span style={{ fontSize: "0.8rem", color: "#666" }}>Finalizadas con éxito</span>
           </div>
         </div>
 
-        {/* Tabla Citas */}
+        {/* Tabla de Citas Reales */}
         <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem", boxShadow: "0 10px 30px -10px rgba(0,0,0,0.03)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-            <h3 className="playfair" style={{ fontSize: "1.4rem", margin: 0 }}>Agenda del Día</h3>
+            <h3 className="playfair" style={{ fontSize: "1.4rem", margin: 0 }}>Gestión de Reservas en Vivo</h3>
             <span style={{ fontSize: "0.85rem", color: "#7D8E7C", fontWeight: 600 }}>Sede Las Condes</span>
           </div>
 
-          <table className="table-admin">
-            <thead>
-              <tr>
-                <th>Horario</th>
-                <th>Paciente</th>
-                <th>Tratamiento</th>
-                <th>Especialista</th>
-                <th>Estado</th>
-                <th>Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style={{ fontWeight: 600 }}>09:00 - 10:00</td>
-                <td>Valentina Silva</td>
-                <td>Kinesiología Deportiva</td>
-                <td>Dr. Matías Arancibia</td>
-                <td><span className="badge-status" style={{ backgroundColor: "#E6F4EA", color: "#137333" }}>Confirmada</span></td>
-                <td><button style={{ border: "none", background: "none", color: "#7D8E7C", cursor: "pointer", fontWeight: 600 }}>Ver Ficha →</button></td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 600 }}>10:30 - 11:15</td>
-                <td>Camila Ugarte</td>
-                <td>Estética Facial Armónica</td>
-                <td>Dra. Camila Morales</td>
-                <td><span className="badge-status" style={{ backgroundColor: "#E6F4EA", color: "#137333" }}>En Atención</span></td>
-                <td><button style={{ border: "none", background: "none", color: "#7D8E7C", cursor: "pointer", fontWeight: 600 }}>Ver Ficha →</button></td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 600 }}>12:00 - 13:00</td>
-                <td>Rodrigo Mendoza</td>
-                <td>Rehabilitación Lumbar</td>
-                <td>Dr. Matías Arancibia</td>
-                <td><span className="badge-status" style={{ backgroundColor: "#FEF7E0", color: "#B06000" }}>Pendiente</span></td>
-                <td><button style={{ border: "none", background: "none", color: "#7D8E7C", cursor: "pointer", fontWeight: 600 }}>Ver Ficha →</button></td>
-              </tr>
-            </tbody>
-          </table>
+          {loading ? (
+            <div style={{ padding: "3rem", textAlign: "center", color: "#666" }}>Cargando datos desde Supabase...</div>
+          ) : reservas.length > 0 ? (
+            <table className="table-admin">
+              <thead>
+                <tr>
+                  <th>Fecha & Hora</th>
+                  <th>Paciente</th>
+                  <th>Tratamiento</th>
+                  <th>Especialista</th>
+                  <th>Estado Actual</th>
+                  <th>Cambiar Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reservas.map((r) => (
+                  <tr key={r.id}>
+                    <td style={{ fontWeight: 600 }}>
+                      <div>{r.fecha}</div>
+                      <div style={{ fontSize: "0.8rem", color: "#8B2434" }}>{r.hora} hrs</div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: "#1F1F1F" }}>{r.paciente_nombre || 'Paciente'}</div>
+                      <div style={{ fontSize: "0.8rem", color: "#666" }}>{r.paciente_email}</div>
+                    </td>
+                    <td style={{ fontWeight: 500 }}>{r.servicio}</td>
+                    <td>{r.especialista}</td>
+                    <td>
+                      <span className="badge-status" style={{
+                        backgroundColor: r.estado === 'En Atención' ? '#FEF7E0' : r.estado === 'Completada' ? '#E6F4EA' : r.estado === 'Cancelada' ? '#FCE8E6' : '#E6F4EA',
+                        color: r.estado === 'En Atención' ? '#B06000' : r.estado === 'Completada' ? '#137333' : r.estado === 'Cancelada' ? '#C5221F' : '#137333'
+                      }}>
+                        {r.estado || 'Confirmada'}
+                      </span>
+                    </td>
+                    <td>
+                      <select
+                        disabled={actualizandoId === r.id}
+                        value={r.estado || 'Confirmada'}
+                        onChange={(e) => cambiarEstado(r.id, e.target.value)}
+                        className="select-status"
+                      >
+                        <option value="Confirmada">Confirmada</option>
+                        <option value="En Atención">En Atención</option>
+                        <option value="Completada">Completada</option>
+                        <option value="Cancelada">Cancelada</option>
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div style={{ padding: "3rem", textAlign: "center", color: "#666" }}>
+              No se han registrado citas aún en la base de datos.
+            </div>
+          )}
         </div>
+
       </main>
     </div>
   );
