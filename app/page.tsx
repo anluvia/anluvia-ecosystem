@@ -1,1 +1,7 @@
-export default function Home() { return (<main style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", fontFamily: "sans-serif" }}><h1>ANLUVIA Ecosystem - Desplegado con �xito ??</h1></main>); }
+﻿export default function Home() {
+  return (
+    <main style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", fontFamily: "sans-serif" }}>
+      <h1>ANLUVIA Ecosystem - Desplegado con Éxito 🚀</h1>
+    </main>
+  );
+}
