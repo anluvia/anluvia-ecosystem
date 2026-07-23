@@ -85,7 +85,6 @@ export default function Home() {
         }
       `}</style>
 
-      {/* Header con Iniciar Sesión / Registrarse */}
       <header style={{
         position: "fixed",
         top: 0,
@@ -126,7 +125,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero Section */}
       <section id="inicio" style={{
         paddingTop: "11rem",
         paddingBottom: "7rem",
@@ -183,7 +181,6 @@ export default function Home() {
           </a>
         </div>
 
-        {/* Indicators */}
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
@@ -200,7 +197,7 @@ export default function Home() {
             <div style={{ fontSize: "0.85rem", color: "#666666", marginTop: "0.25rem", letterSpacing: "0.05em", textTransform: "uppercase" }}>Tratamientos Exitosos</div>
           </div>
           <div>
-            <div className="playfair" style={{ fontSize: "2.5rem", fontWeight: 700, color: "#8B2434" }}>98%</div>
+            <div className="playfair" style={{ fontSize: "2.5rem", fontWeight 700, color: "#8B2434" }}>98%</div>
             <div style={{ fontSize: "0.85rem", color: "#666666", marginTop: "0.25rem", letterSpacing: "0.05em", textTransform: "uppercase" }}>Satisfacción Pacientes</div>
           </div>
           <div>
@@ -210,47 +207,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Servicios Section */}
-      <section id="servicios" style={{ backgroundColor: "#F4EEE8", padding: "7rem 2rem" }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "4.5rem" }}>
-            <span style={{ color: "#8B2434", fontSize: "0.85rem", fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase" }}>
-              ESPECIALIDADES EXCLUSIVAS
-            </span>
-            <h2 className="playfair" style={{ fontSize: "2.75rem", marginTop: "0.75rem", color: "#1F1F1F" }}>
-              Nuestras Áreas de Cuidado
-            </h2>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "2.5rem" }}>
-            <div className="card-editorial">
-              <div style={{ color: "#7D8E7C", fontSize: "1.75rem", marginBottom: "1.25rem", fontWeight: 300 }}>01</div>
-              <h3 className="playfair" style={{ fontSize: "1.6rem", marginBottom: "1rem", color: "#1F1F1F" }}>Kinesiología y Recuperación</h3>
-              <p style={{ color: "#666666", lineHeight: 1.6, fontSize: "0.95rem", marginBottom: "1.5rem" }}>
-                Rehabilitación funcional personalizada, terapia de onda de choque y evaluación biomecánica avanzada para deportistas y pacientes de alta exigencia.
-              </p>
-            </div>
-
-            <div className="card-editorial">
-              <div style={{ color: "#8B2434", fontSize: "1.75rem", marginBottom: "1.25rem", fontWeight: 300 }}>02</div>
-              <h3 className="playfair" style={{ fontSize: "1.6rem", marginBottom: "1rem", color: "#1F1F1F" }}>Estética Facial y Corporal</h3>
-              <p style={{ color: "#666666", lineHeight: 1.6, fontSize: "0.95rem", marginBottom: "1.5rem" }}>
-                Tratamientos dermato-funcionales de última generación, remodelación corporal no invasiva y rejuvenecimiento facial armónico.
-              </p>
-            </div>
-
-            <div className="card-editorial">
-              <div style={{ color: "#7D8E7C", fontSize: "1.75rem", marginBottom: "1.25rem", fontWeight 300 }}>03</div>
-              <h3 className="playfair" style={{ fontSize: "1.6rem", marginBottom: "1rem", color: "#1F1F1F" }}>Bienestar Integral y Spa</h3>
-              <p style={{ color: "#666666", lineHeight: 1.6, fontSize: "0.95rem", marginBottom: "1.5rem" }}>
-                Terapia de descompresión corporal, masoterapia de autor, drenaje linfático profundo y nutrición integral para el equilibrio del organismo.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
       <footer style={{ backgroundColor: "#1F1F1F", color: "#F4EEE8", padding: "4rem 2rem 2rem 2rem", textAlign: "center" }}>
         <span className="playfair" style={{ fontSize: "1.8rem", fontWeight: 700, letterSpacing: "0.05em", color: "#FBF9F6" }}>
           ANLUVIA

@@ -64,7 +64,6 @@ export default function AuthPage() {
         }
       `}</style>
 
-      {/* Header Fijo */}
       <header style={{ padding: "1.5rem 3rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <a href="/" style={{ textDecoration: "none", color: "#1F1F1F" }} className="playfair">
           <span style={{ fontSize: "1.75rem", fontWeight: 700, letterSpacing: "0.05em" }}>ANLUVIA</span>
@@ -77,7 +76,6 @@ export default function AuthPage() {
         </a>
       </header>
 
-      {/* Form Container */}
       <main style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
         <div style={{
           backgroundColor: "#FFFFFF",
@@ -89,7 +87,6 @@ export default function AuthPage() {
           boxShadow: "0 20px 50px -15px rgba(31, 31, 31, 0.05)"
         }}>
 
-          {/* Tabs */}
           <div style={{ display: "flex", borderBottom: "1px solid #F4EEE8", marginBottom: "2.5rem" }}>
             <button
               className={`tab-btn ${!isSignUp ? "tab-active" : ""}`}
@@ -117,7 +114,6 @@ export default function AuthPage() {
           </div>
 
           <form onSubmit={(e) => e.preventDefault()} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-            
             {isSignUp && (
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#666", marginBottom: "0.4rem" }}>
@@ -162,7 +158,6 @@ export default function AuthPage() {
                 {isSignUp ? "Registrarme e Ingresar" : "Ingresar a mi Portal"}
               </a>
             </div>
-
           </form>
 
           <div style={{ marginTop: "2rem", textAlign: "center", borderTop: "1px solid #F4EEE8", paddingTop: "1.5rem" }}>
