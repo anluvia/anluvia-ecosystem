@@ -10,6 +10,7 @@ export default function AdminDashboard() {
   const [evoluciones, setEvoluciones] = useState<any[]>([]);
   const [gastos, setGastos] = useState<any[]>([]);
   const [ventas, setVentas] = useState<any[]>([]);
+  const [campanas, setCampanas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Estados SII / Ventas
@@ -36,6 +37,15 @@ export default function AdminDashboard() {
   const [gastoFecha, setGastoFecha] = useState(new Date().toISOString().split('T')[0]);
   const [guardandoGasto, setGuardandoGasto] = useState(false);
   const [mensajeGasto, setMensajeGasto] = useState('');
+
+  // Formulario de Marketing / Campañas
+  const [campNombre, setCampNombre] = useState('');
+  const [campPlataforma, setCampPlataforma] = useState('Meta Ads (Instagram/FB)');
+  const [campInversion, setCampInversion] = useState('');
+  const [campClics, setCampClics] = useState('');
+  const [campCitas, setCampCitas] = useState('');
+  const [guardandoCampana, setGuardandoCampana] = useState(false);
+  const [mensajeCampana, setMensajeCampana] = useState('');
 
   const preciosServicios: { [key: string]: number } = {
     'Kinesiología & Recuperación Física': 45000,
@@ -185,6 +195,22 @@ export default function AdminDashboard() {
       // Cargar Ventas / DTEs
       const localVentas = localStorage.getItem('anluvia_ventas');
       if (localVentas) setVentas(JSON.parse(localVentas));
+
+      // Cargar Campañas de Marketing
+      const localCampanas = localStorage.getItem('anluvia_campanas');
+      if (localCampanas) {
+        setCampanas(JSON.parse(localCampanas));
+      } else {
+        // Campañas iniciales de muestra
+        const muestraCampanas = [
+          { id: '1', nombre: 'Campaña Estética Facial Invierno', plataforma: 'Meta Ads (Instagram/FB)', inversion: 150000, clics: 850, citas: 12, fecha: '2026-07-01' },
+          { id: '2', nombre: 'Búsqueda Google Kinesiología Las Condes', plataforma: 'Google Ads', inversion: 120000, clics: 420, citas: 9, fecha: '2026-07-05' },
+          { id: '3', nombre: 'Viral TikTok Remodelación Corporal', plataforma: 'TikTok Ads', inversion: 80000, clics: 1200, citas: 6, fecha: '2026-07-10' },
+        ];
+        setCampanas(muestraCampanas);
+        localStorage.setItem('anluvia_campanas', JSON.stringify(muestraCampanas));
+      }
+
     } catch (err) {
       console.error(err);
     } finally {
@@ -339,6 +365,40 @@ export default function AdminDashboard() {
     localStorage.setItem('anluvia_gastos', JSON.stringify(gastosFiltrados));
   };
 
+  const guardarCampana = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!campNombre || !campInversion) return;
+
+    setGuardandoCampana(true);
+
+    const nuevaCamp = {
+      id: Date.now().toString(),
+      nombre: campNombre,
+      plataforma: campPlataforma,
+      inversion: Number(campInversion),
+      clics: Number(campClics || 0),
+      citas: Number(campCitas || 0),
+      fecha: new Date().toISOString().split('T')[0]
+    };
+
+    const actualizadas = [nuevaCamp, ...campanas];
+    setCampanas(actualizadas);
+    localStorage.setItem('anluvia_campanas', JSON.stringify(actualizadas));
+
+    setMensajeCampana('✅ Campaña registrada con éxito.');
+    setCampNombre('');
+    setCampInversion('');
+    setCampClics('');
+    setCampCitas('');
+    setGuardandoCampana(false);
+  };
+
+  const eliminarCampana = (id: string) => {
+    const filtradas = campanas.filter(c => c.id !== id);
+    setCampanas(filtradas);
+    localStorage.setItem('anluvia_campanas', JSON.stringify(filtradas));
+  };
+
   const exportarPDF = () => {
     if (!selectedPacienteEmail) {
       alert("Por favor selecciona un paciente primero.");
@@ -353,7 +413,6 @@ export default function AdminDashboard() {
     const reserva = reservas.find(r => r.paciente_email === email);
     return { email, nombre: reserva?.paciente_nombre || 'Paciente ANLUVIA' };
   });
-  const totalPacientes = pacientesUnicos.length;
 
   const ingresosBrutos = reservas.reduce((acc, r) => {
     const precio = preciosServicios[r.servicio] || 45000;
@@ -363,6 +422,16 @@ export default function AdminDashboard() {
   const egresosTotales = gastos.reduce((acc, g) => acc + Number(g.monto || 0), 0);
   const gananciaNeta = ingresosBrutos - egresosTotales;
   const margenRentabilidad = ingresosBrutos > 0 ? Math.round((gananciaNeta / ingresosBrutos) * 100) : 0;
+
+  // CÁLCULOS DE MARKETING & ADS
+  const totalInversionAds = campanas.reduce((acc, c) => acc + Number(c.inversion || 0), 0);
+  const totalCitasAds = campanas.reduce((acc, c) => acc + Number(c.citas || 0), 0);
+  const totalClicsAds = campanas.reduce((acc, c) => acc + Number(c.clics || 0), 0);
+  const costoPorCitaCPA = totalCitasAds > 0 ? Math.round(totalInversionAds / totalCitasAds) : 0;
+  
+  // Ingreso Estimado Generado por Ads (Promedio $48.000 CLP por cita)
+  const ingresosGeneradosAds = totalCitasAds * 48000;
+  const roasMarketing = totalInversionAds > 0 ? (ingresosGeneradosAds / totalInversionAds).toFixed(1) : "0.0";
 
   const serviciosConteo: { [key: string]: number } = {};
   reservas.forEach(r => {
@@ -388,6 +457,9 @@ export default function AdminDashboard() {
           <nav style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
             <div className={`sidebar-item ${activeTab === 'dashboard' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('dashboard')}>
               📊 Dashboard & Métricas
+            </div>
+            <div className={`sidebar-item ${activeTab === 'marketing' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('marketing')}>
+              📣 Marketing & ROI Ads
             </div>
             <div className={`sidebar-item ${activeTab === 'ventas' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('ventas')}>
               📈 Ventas & Facturación SII
@@ -429,15 +501,15 @@ export default function AdminDashboard() {
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", marginBottom: "2.5rem" }}>
               <div className="kpi-card">
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#7D8E7C", letterSpacing: "0.1em", textTransform: "uppercase" }}>Ventas / Ingresos Brutos</span>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#7D8E7C", letterSpacing: "0.1em", textTransform: "uppercase" }}>Ventas Brutas</span>
                 <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.3rem" }}>
                   ${ingresosBrutos.toLocaleString('es-CL')} <span style={{ fontSize: "0.8rem", color: "#666" }}>CLP</span>
                 </div>
               </div>
 
               <div className="kpi-card">
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#8B2434", letterSpacing: "0.1em", textTransform: "uppercase" }}>Compras / Gastos</span>
-                <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#8B2434", marginTop: "0.3rem" }}>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#8B2434", letterSpacing: "0.1em", textTransform: "uppercase" }}>Compras & Gastos</span>
+                <div style={{ fontSize: "1.8rem", fontWeight 700, color: "#8B2434", marginTop: "0.3rem" }}>
                   ${egresosTotales.toLocaleString('es-CL')} <span style={{ fontSize: "0.8rem", color: "#666" }}>CLP</span>
                 </div>
               </div>
@@ -451,7 +523,7 @@ export default function AdminDashboard() {
 
               <div className="kpi-card">
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#7D8E7C", letterSpacing: "0.1em", textTransform: "uppercase" }}>Margen Rentabilidad</span>
-                <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.3rem" }}>
+                <div style={{ fontSize: "1.8rem", fontWeight 700, color: "#1F1F1F", marginTop: "0.3rem" }}>
                   {margenRentabilidad}%
                 </div>
               </div>
@@ -488,7 +560,164 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* PESTAÑA 2: VENTAS & FACTURACIÓN SII */}
+        {/* PESTAÑA 2: MARKETING & ROI ADS */}
+        {activeTab === 'marketing' && (
+          <div className="no-print">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+              <div>
+                <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#8B2434", letterSpacing: "0.1em" }}>ADQUISICIÓN DE PACIENTES & ADS</span>
+                <h1 className="playfair" style={{ fontSize: "2.25rem", margin: "0.25rem 0 0 0" }}>Marketing & Rendimiento de Anuncios</h1>
+              </div>
+            </div>
+
+            {/* TARJETAS DE RENDIMIENTO MARKETING */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", marginBottom: "2.5rem" }}>
+              <div className="kpi-card">
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#8B2434", letterSpacing: "0.1em", textTransform: "uppercase" }}>Inversión Total Ads</span>
+                <div style={{ fontSize: "1.8rem", fontWeight 700, color: "#1F1F1F", marginTop: "0.3rem" }}>
+                  ${totalInversionAds.toLocaleString('es-CL')} <span style={{ fontSize: "0.8rem", color: "#666" }}>CLP</span>
+                </div>
+              </div>
+
+              <div className="kpi-card">
+                <span style={{ fontSize: "0.75rem", fontWeight 700, color: "#7D8E7C", letterSpacing: "0.1em", textTransform: "uppercase" }}>Citas Generadas por Ads</span>
+                <div style={{ fontSize: "1.8rem", fontWeight 700, color: "#137333", marginTop: "0.3rem" }}>
+                  {totalCitasAds} <span style={{ fontSize: "0.8rem", color: "#666" }}>pacientes</span>
+                </div>
+              </div>
+
+              <div className="kpi-card">
+                <span style={{ fontSize: "0.75rem", fontWeight 700, color: "#8B2434", letterSpacing: "0.1em", textTransform: "uppercase" }}>CPA (Costo por Cita)</span>
+                <div style={{ fontSize: "1.8rem", fontWeight 700, color: "#8B2434", marginTop: "0.3rem" }}>
+                  ${costoPorCitaCPA.toLocaleString('es-CL')} <span style={{ fontSize: "0.8rem", color: "#666" }}>CLP</span>
+                </div>
+              </div>
+
+              <div className="kpi-card">
+                <span style={{ fontSize: "0.75rem", fontWeight 700, color: "#137333", letterSpacing: "0.1em", textTransform: "uppercase" }}>ROAS (Retorno Ads)</span>
+                <div style={{ fontSize: "1.8rem", fontWeight 700, color: "#137333", marginTop: "0.3rem" }}>
+                  {roasMarketing}x
+                </div>
+                <span style={{ fontSize: "0.75rem", color: "#666" }}>Ganas ${roasMarketing} por cada $1 gastado</span>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "2rem" }}>
+              {/* Formulario para Agregar Campaña */}
+              <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
+                <h3 className="playfair" style={{ fontSize: "1.3rem", marginTop: 0, color: "#8B2434" }}>
+                  + Registrar Campaña de Anuncios
+                </h3>
+
+                {mensajeCampana && (
+                  <div style={{ padding: "0.75rem", backgroundColor: "#F4EEE8", borderRadius: "10px", color: "#7D8E7C", fontWeight: 600, fontSize: "0.85rem", marginBottom: "1rem" }}>
+                    {mensajeCampana}
+                  </div>
+                )}
+
+                <form onSubmit={guardarCampana} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
+                      Nombre de la Campaña *
+                    </label>
+                    <input type="text" placeholder="Ej. Promo Limpieza Facial Instagram" value={campNombre} onChange={(e) => setCampNombre(e.target.value)} className="input-anluvia" required />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
+                      Plataforma de Ads *
+                    </label>
+                    <select value={campPlataforma} onChange={(e) => setCampPlataforma(e.target.value)} className="input-anluvia">
+                      <option value="Meta Ads (Instagram/FB)">Meta Ads (Instagram / Facebook)</option>
+                      <option value="Google Ads">Google Ads (Búsqueda / Maps)</option>
+                      <option value="TikTok Ads">TikTok Ads</option>
+                      <option value="Influencers / Offline">Influencers / Alianzas</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
+                      Inversión en Ads ($ CLP) *
+                    </label>
+                    <input type="number" placeholder="Ej. 100000" value={campInversion} onChange={(e) => setCampInversion(e.target.value)} className="input-anluvia" required />
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
+                        Clics / Interacciones
+                      </label>
+                      <input type="number" placeholder="Ej. 500" value={campClics} onChange={(e) => setCampClics(e.target.value)} className="input-anluvia" />
+                    </div>
+
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
+                        Citas Conseguidas
+                      </label>
+                      <input type="number" placeholder="Ej. 8" value={campCitas} onChange={(e) => setCampCitas(e.target.value)} className="input-anluvia" />
+                    </div>
+                  </div>
+
+                  <button type="submit" disabled={guardandoCampana} className="btn-salvia" style={{ width: "100%", padding: "0.85rem", marginTop: "0.5rem" }}>
+                    {guardandoCampana ? "Guardando..." : "📣 Guardar Rendimiento de Campaña"}
+                  </button>
+                </form>
+              </div>
+
+              {/* Tabla de Campañas y Resultados */}
+              <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
+                <h3 className="playfair" style={{ fontSize: "1.3rem", marginTop: 0, color: "#1F1F1F", marginBottom: "1.5rem" }}>
+                  Campañas Activas & Históricas ({campanas.length})
+                </h3>
+
+                {campanas.length > 0 ? (
+                  <table className="table-admin">
+                    <thead>
+                      <tr>
+                        <th>Campaña / Plataforma</th>
+                        <th>Inversión ($)</th>
+                        <th>Citas</th>
+                        <th>CPA ($/Cita)</th>
+                        <th>ROAS Est.</th>
+                        <th>Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {campanas.map((c) => {
+                        const cpaIndividual = c.citas > 0 ? Math.round(c.inversion / c.citas) : 0;
+                        const roasInd = c.inversion > 0 ? ((c.citas * 48000) / c.inversion).toFixed(1) : "0.0";
+
+                        return (
+                          <tr key={c.id}>
+                            <td>
+                              <div style={{ fontWeight: 700, color: "#1F1F1F" }}>{c.nombre}</div>
+                              <div style={{ fontSize: "0.75rem", color: "#8B2434", fontWeight: 600 }}>{c.plataforma}</div>
+                            </td>
+                            <td style={{ fontWeight: 600 }}>${Number(c.inversion).toLocaleString('es-CL')}</td>
+                            <td><strong style={{ color: "#137333" }}>{c.citas}</strong> citas</td>
+                            <td>${cpaIndividual.toLocaleString('es-CL')}</td>
+                            <td><span style={{ backgroundColor: "#E6F4EA", color: "#137333", padding: "0.2rem 0.6rem", borderRadius: "9999px", fontWeight: 700, fontSize: "0.8rem" }}>{roasInd}x</span></td>
+                            <td>
+                              <button onClick={() => eliminarCampana(c.id)} style={{ background: "none", border: "none", color: "#D93025", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600 }}>
+                                🗑️
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p style={{ color: "#666", textAlign: "center", padding: "2rem 0" }}>
+                    Aún no has registrado campañas de anuncios. Ingresa el primer presupuesto en el formulario lateral.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PESTAÑA 3: VENTAS */}
         {activeTab === 'ventas' && (
           <div className="no-print">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
@@ -498,7 +727,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* SECCIÓN DE EMISIÓN DE PRUEBA DTE */}
             <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "2px solid #8B2434", padding: "2rem", marginBottom: "2rem", boxShadow: "0 10px 30px -10px rgba(139, 36, 52, 0.1)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
                 <div>
@@ -528,7 +756,6 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            {/* TABLA HISTORIAL DE VENTAS Y DTES */}
             <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
               <h3 className="playfair" style={{ fontSize: "1.3rem", marginTop: 0, color: "#1F1F1F", marginBottom: "1.5rem" }}>
                 Historial de Boletas y Facturas Emitidas ({ventas.length})
@@ -575,7 +802,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* PESTAÑA 3: COMPRAS & GASTOS */}
+        {/* PESTAÑA 4: COMPRAS */}
         {activeTab === 'compras' && (
           <div className="no-print">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
@@ -586,7 +813,6 @@ export default function AdminDashboard() {
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "2rem" }}>
-              {/* Formulario para Agregar Gasto / Compra */}
               <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
                 <h3 className="playfair" style={{ fontSize: "1.3rem", marginTop: 0, color: "#8B2434" }}>
                   + Registrar Nueva Compra / Gasto
@@ -640,7 +866,6 @@ export default function AdminDashboard() {
                 </form>
               </div>
 
-              {/* Historial de Compras */}
               <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
                   <h3 className="playfair" style={{ fontSize: "1.3rem", margin: 0, color: "#1F1F1F" }}>
@@ -688,7 +913,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* PESTAÑA 4: AGENDA DE ATENCIÓN */}
+        {/* PESTAÑA 5: AGENDA */}
         {activeTab === 'agenda' && (
           <div className="no-print">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
@@ -741,7 +966,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* PESTAÑA 5: FICHAS & EVOLUCIÓN KINÉSICA */}
+        {/* PESTAÑA 6: FICHAS */}
         {activeTab === 'fichas' && (
           <div>
             <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
