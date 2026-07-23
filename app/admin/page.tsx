@@ -25,8 +25,6 @@ export default function AdminDashboard() {
   const [evoluciones, setEvoluciones] = useState<any[]>([]);
   const [gastos, setGastos] = useState<any[]>([]);
   const [ventas, setVentas] = useState<any[]>([]);
-  const [campanas, setCampanas] = useState<any[]>([]);
-  const [blogs, setBlogs] = useState<any[]>([]);
   const [usuarios, setUsuarios] = useState<UsuarioEquipo[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -36,10 +34,6 @@ export default function AdminDashboard() {
   const [nuevaClave, setNuevaClave] = useState("");
   const [rolesSeleccionados, setRolesSeleccionados] = useState<TipoRol[]>(['especialista']);
   const [mensajeUsuario, setMensajeUsuario] = useState("");
-
-  // Estados SII
-  const [loadingSii, setLoadingSii] = useState(false);
-  const [resultadoSii, setResultadoSii] = useState<any>(null);
 
   // Formulario Ficha Kinésica
   const [selectedPacienteEmail, setSelectedPacienteEmail] = useState("");
@@ -58,7 +52,6 @@ export default function AdminDashboard() {
   const [gastoCategoria, setGastoCategoria] = useState("Insumos Médicos");
   const [gastoMonto, setGastoMonto] = useState("");
   const [gastoFecha, setGastoFecha] = useState(new Date().toISOString().split("T")[0]);
-  const [guardandoGasto, setGuardandoGasto] = useState(false);
   const [mensajeGasto, setMensajeGasto] = useState("");
 
   const preciosServicios: Record<string, number> = {
@@ -79,7 +72,7 @@ export default function AdminDashboard() {
     const localUsers = localStorage.getItem("anluvia_equipo_users");
     let userList: UsuarioEquipo[] = [];
     if (localUsers) {
-      try { userList = JSON.parse(localUsers); } catch { userList = usuariosBaseIniciales; }
+      try { userList = JSON.parse(localUsers); } catch (e) { userList = usuariosBaseIniciales; }
     } else {
       userList = usuariosBaseIniciales;
       localStorage.setItem("anluvia_equipo_users", JSON.stringify(usuariosBaseIniciales));
@@ -95,16 +88,16 @@ export default function AdminDashboard() {
         if (activeUser?.roles?.includes('admin')) setActiveTab('dashboard');
         else if (activeUser?.roles?.includes('especialista')) setActiveTab('fichas');
         else if (activeUser?.roles?.includes('recepcion')) setActiveTab('agenda');
-        else if (activeUser?.roles?.includes('editor')) setActiveTab('contenido');
+        else if (activeUser?.roles?.includes('editor')) setActiveTab('agenda');
         cargarDatos();
-      } catch {}
+      } catch (e) {}
     }
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
-    const userFound = usuarios.find(u => u.clave === inputPassword.trim());
+    const userFound = usuarios.find((u) => u.clave === inputPassword.trim());
     if (userFound) {
       setIsAuthenticated(true);
       setCurrentUser(userFound);
@@ -112,7 +105,7 @@ export default function AdminDashboard() {
       if (userFound.roles.includes('admin')) setActiveTab('dashboard');
       else if (userFound.roles.includes('especialista')) setActiveTab('fichas');
       else if (userFound.roles.includes('recepcion')) setActiveTab('agenda');
-      else if (userFound.roles.includes('editor')) setActiveTab('contenido');
+      else if (userFound.roles.includes('editor')) setActiveTab('agenda');
       cargarDatos();
     } else {
       setLoginError("🔑 Clave no reconocida. Verifica tus credenciales.");
@@ -139,12 +132,6 @@ export default function AdminDashboard() {
 
       const localVentas = localStorage.getItem("anluvia_ventas");
       if (localVentas) setVentas(JSON.parse(localVentas));
-
-      const localCampanas = localStorage.getItem("anluvia_campanas");
-      if (localCampanas) setCampanas(JSON.parse(localCampanas));
-
-      const localBlogs = localStorage.getItem("anluvia_blogs");
-      if (localBlogs) setBlogs(JSON.parse(localBlogs));
     } catch (err) {
       console.error(err);
     } finally {
@@ -160,7 +147,7 @@ export default function AdminDashboard() {
       nombre: nuevoNombre,
       email: nuevoEmail || `${nuevoNombre.toLowerCase().replace(/\s+/g, '')}@anluvia.cl`,
       clave: nuevaClave,
-      roles: rolesSeleccionados
+      roles: rolesSeleccionados,
     };
     const actualizados = [nuevo, ...usuarios];
     setUsuarios(actualizados);
@@ -173,21 +160,26 @@ export default function AdminDashboard() {
   };
 
   const eliminarUsuario = (id: string) => {
-    if (usuarios.length <= 1) return alert("Debe existir al menos un usuario.");
-    const filtrados = usuarios.filter(u => u.id !== id);
+    if (usuarios.length <= 1) {
+      alert("Debe existir al menos un usuario.");
+      return;
+    }
+    const filtrados = usuarios.filter((u) => u.id !== id);
     setUsuarios(filtrados);
     localStorage.setItem("anluvia_equipo_users", JSON.stringify(filtrados));
   };
 
   const toggleRolCheck = (rol: TipoRol) => {
     if (rolesSeleccionados.includes(rol)) {
-      setRolesSeleccionados(rolesSeleccionados.filter(r => r !== rol));
+      setRolesSeleccionados(rolesSeleccionados.filter((r) => r !== rol));
     } else {
       setRolesSeleccionados([...rolesSeleccionados, rol]);
     }
   };
 
-  const hasRole = (rol: TipoRol) => currentUser?.roles ? currentUser.roles.includes(rol) : false;
+  const hasRole = (rol: TipoRol): boolean => {
+    return currentUser?.roles ? currentUser.roles.includes(rol) : false;
+  };
 
   const seleccionarParaFicha = (pacienteEmail: string, pacienteNombre: string) => {
     setSelectedPacienteEmail(pacienteEmail);
@@ -201,29 +193,62 @@ export default function AdminDashboard() {
     e.preventDefault();
     setGuardandoEvolucion(true);
     try {
-      const { error } = await supabase.from("evoluciones").insert([{ paciente_email: selectedPacienteEmail, paciente_nombre: selectedPacienteNombre, especialista: currentUser?.nombre || "Especialista ANLUVIA", numero_sesion: numSesion, eva_dolor: evaDolor, subjetivo, objetivo, tratamiento, indicaciones }]);
-      if (error) setMensajeFicha("⚠️ " + error.message);
-      else {
+      const { error } = await supabase.from("evoluciones").insert([
+        {
+          paciente_email: selectedPacienteEmail,
+          paciente_nombre: selectedPacienteNombre,
+          especialista: currentUser?.nombre || "Especialista ANLUVIA",
+          numero_sesion: numSesion,
+          eva_dolor: evaDolor,
+          subjetivo,
+          objetivo,
+          tratamiento,
+          indicaciones,
+        },
+      ]);
+      if (error) {
+        setMensajeFicha("⚠️ " + error.message);
+      } else {
         setMensajeFicha("🎉 ¡Evolución registrada!");
-        setSubjetivo(""); setObjetivo(""); setTratamiento(""); setIndicaciones("");
+        setSubjetivo("");
+        setObjetivo("");
+        setTratamiento("");
+        setIndicaciones("");
         cargarDatos();
       }
-    } catch { setMensajeFicha("⚠️ Error al guardar."); }
-    finally { setGuardandoEvolucion(false); }
+    } catch (err) {
+      setMensajeFicha("⚠️ Error al guardar.");
+    } finally {
+      setGuardandoEvolucion(false);
+    }
   };
 
   const guardarGasto = (e: React.FormEvent) => {
     e.preventDefault();
     if (!gastoConcepto || !gastoMonto) return;
-    setGuardandoGasto(true);
-    const nuevoGasto = { id: Date.now().toString(), concepto: gastoConcepto, categoria: gastoCategoria, monto: Number(gastoMonto), fecha: gastoFecha, created_at: new Date().toISOString() };
+    const nuevoGasto = {
+      id: Date.now().toString(),
+      concepto: gastoConcepto,
+      categoria: gastoCategoria,
+      monto: Number(gastoMonto),
+      fecha: gastoFecha,
+      created_at: new Date().toISOString(),
+    };
     const nuevosGastos = [nuevoGasto, ...gastos];
     setGastos(nuevosGastos);
     localStorage.setItem("anluvia_gastos", JSON.stringify(nuevosGastos));
-    setMensajeGasto("✅ Compra registrada."); setGastoConcepto(""); setGastoMonto(""); setGuardandoGasto(false);
+    setMensajeGasto("✅ Compra registrada.");
+    setGastoConcepto("");
+    setGastoMonto("");
   };
 
-  const exportarPDF = () => { if (!selectedPacienteEmail) return alert("Selecciona un paciente primero."); window.print(); };
+  const exportarPDF = () => {
+    if (!selectedPacienteEmail) {
+      alert("Selecciona un paciente primero.");
+      return;
+    }
+    window.print();
+  };
 
   // Cálculos
   const totalCitas = reservas.length;
@@ -427,7 +452,7 @@ export default function AdminDashboard() {
                         <td style={{ padding: "0.75rem" }}><code style={{ backgroundColor: "#F4EEE8", padding: "0.2rem 0.5rem", borderRadius: "6px" }}>{u.clave}</code></td>
                         <td style={{ padding: "0.75rem" }}>
                           <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap" }}>
-                            {u.roles.map(r => (
+                            {u.roles.map((r) => (
                               <span key={r} style={{ backgroundColor: r === 'admin' ? '#FDF2F2' : '#E6F4EA', color: r === 'admin' ? '#8B2434' : '#137333', padding: "0.15rem 0.5rem", borderRadius: "9999px", fontSize: "0.75rem", fontWeight: 700 }}>
                                 {r}
                               </span>
@@ -442,6 +467,25 @@ export default function AdminDashboard() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'fichas' && (hasRole('admin') || hasRole('especialista')) && (
+          <div className="no-print">
+            <h1 style={{ fontSize: "2.25rem", margin: "0 0 2rem 0", fontFamily: "serif" }}>Ficha Médica Kinésica</h1>
+            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid #E2E8F0", padding: "2rem" }}>
+              <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#666", marginBottom: "0.5rem" }}>Seleccionar Paciente:</label>
+              <select value={selectedPacienteEmail} onChange={(e) => {
+                const email = e.target.value;
+                const p = pacientesUnicos.find((item) => item.email === email);
+                if (p) seleccionarParaFicha(p.email, p.nombre);
+              }} style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid #ccc" }}>
+                <option value="">-- Selecciona un Paciente --</option>
+                {pacientesUnicos.map((p) => (
+                  <option key={p.email} value={p.email}>{p.nombre} ({p.email})</option>
+                ))}
+              </select>
             </div>
           </div>
         )}
