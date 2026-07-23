@@ -76,7 +76,7 @@ export default function AdminDashboard() {
   const [blogContenido, setBlogContenido] = useState("");
   const [mensajeBlog, setMensajeBlog] = useState("");
 
-  const preciosServicios: { [key: string]: number } = {
+  const preciosServicios: Record<string, number> = {
     'Kinesiología & Recuperación Física': 45000,
     'Estética Facial Premium & Armonización': 55000,
     'Remodelación Corporal & Drenaje': 50000,
@@ -94,7 +94,7 @@ export default function AdminDashboard() {
     const localUsers = localStorage.getItem("anluvia_equipo_users");
     let userList: UsuarioEquipo[] = [];
     if (localUsers) {
-      userList = JSON.parse(localUsers);
+      try { userList = JSON.parse(localUsers); } catch (e) { userList = usuariosBaseIniciales; }
     } else {
       userList = usuariosBaseIniciales;
       localStorage.setItem("anluvia_equipo_users", JSON.stringify(usuariosBaseIniciales));
@@ -103,32 +103,31 @@ export default function AdminDashboard() {
 
     const savedUserJson = localStorage.getItem("anluvia_active_user");
     if (savedUserJson) {
-      const activeUser = JSON.parse(savedUserJson);
-      setIsAuthenticated(true);
-      setCurrentUser(activeUser);
-      establecerTabInicial(activeUser.roles);
-      cargarDatos();
+      try {
+        const activeUser = JSON.parse(savedUserJson);
+        setIsAuthenticated(true);
+        setCurrentUser(activeUser);
+        if (activeUser?.roles?.includes('admin')) setActiveTab('dashboard');
+        else if (activeUser?.roles?.includes('especialista')) setActiveTab('fichas');
+        else if (activeUser?.roles?.includes('recepcion')) setActiveTab('agenda');
+        else if (activeUser?.roles?.includes('editor')) setActiveTab('contenido');
+        cargarDatos();
+      } catch (e) {}
     }
   }, []);
-
-  const establecerTabInicial = (roles: TipoRol[]) => {
-    if (roles.includes('admin')) setActiveTab('dashboard');
-    else if (roles.includes('especialista')) setActiveTab('fichas');
-    else if (roles.includes('recepcion')) setActiveTab('agenda');
-    else if (roles.includes('editor')) setActiveTab('contenido');
-  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
-
     const userFound = usuarios.find(u => u.clave === inputPassword.trim());
-
     if (userFound) {
       setIsAuthenticated(true);
       setCurrentUser(userFound);
       localStorage.setItem("anluvia_active_user", JSON.stringify(userFound));
-      establecerTabInicial(userFound.roles);
+      if (userFound.roles.includes('admin')) setActiveTab('dashboard');
+      else if (userFound.roles.includes('especialista')) setActiveTab('fichas');
+      else if (userFound.roles.includes('recepcion')) setActiveTab('agenda');
+      else if (userFound.roles.includes('editor')) setActiveTab('contenido');
       cargarDatos();
     } else {
       setLoginError("🔑 Clave no reconocida. Verifica tus credenciales.");
@@ -171,7 +170,6 @@ export default function AdminDashboard() {
   const handleCrearUsuario = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevoNombre || !nuevaClave || rolesSeleccionados.length === 0) return;
-
     const nuevo: UsuarioEquipo = {
       id: Date.now().toString(),
       nombre: nuevoNombre,
@@ -179,11 +177,9 @@ export default function AdminDashboard() {
       clave: nuevaClave,
       roles: rolesSeleccionados
     };
-
     const actualizados = [nuevo, ...usuarios];
     setUsuarios(actualizados);
     localStorage.setItem("anluvia_equipo_users", JSON.stringify(actualizados));
-
     setMensajeUsuario(`✅ Usuario "${nuevoNombre}" registrado.`);
     setNuevoNombre("");
     setNuevoEmail("");
@@ -192,7 +188,7 @@ export default function AdminDashboard() {
   };
 
   const eliminarUsuario = (id: string) => {
-    if (usuarios.length <= 1) return alert("Debe existir al menos un administrador.");
+    if (usuarios.length <= 1) return alert("Debe existir al menos un usuario.");
     const filtrados = usuarios.filter(u => u.id !== id);
     setUsuarios(filtrados);
     localStorage.setItem("anluvia_equipo_users", JSON.stringify(filtrados));
@@ -206,7 +202,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const hasRole = (rol: TipoRol) => currentUser?.roles.includes(rol) || false;
+  const hasRole = (rol: TipoRol) => currentUser?.roles ? currentUser.roles.includes(rol) : false;
 
   const seleccionarParaFicha = (pacienteEmail: string, pacienteNombre: string) => {
     setSelectedPacienteEmail(pacienteEmail);
@@ -309,7 +305,7 @@ export default function AdminDashboard() {
 
   const exportarPDF = () => { if (!selectedPacienteEmail) return alert("Selecciona un paciente primero."); window.print(); };
 
-  // CÁLCULOS
+  // Cálculos
   const totalCitas = reservas.length;
   const pacientesUnicos = Array.from(new Set(reservas.map((r) => r.paciente_email))).map((email) => {
     const reserva = reservas.find((r) => r.paciente_email === email);
@@ -320,11 +316,6 @@ export default function AdminDashboard() {
   const egresosTotales = gastos.reduce((acc, g) => acc + Number(g.monto || 0), 0);
   const gananciaNeta = ingresosBrutos - egresosTotales;
   const margenRentabilidad = ingresosBrutos > 0 ? Math.round((gananciaNeta / ingresosBrutos) * 100) : 0;
-
-  const totalInversionAds = campanas.reduce((acc, c) => acc + Number(c.inversion || 0), 0);
-  const totalCitasAds = campanas.reduce((acc, c) => acc + Number(c.citas || 0), 0);
-  const costoPorCitaCPA = totalCitasAds > 0 ? Math.round(totalInversionAds / totalCitasAds) : 0;
-  const roasMarketing = totalInversionAds > 0 ? ((totalCitasAds * 48000) / totalInversionAds).toFixed(1) : "0.0";
 
   const evolucionesPacienteActual = evoluciones.filter((e) => e.paciente_email === selectedPacienteEmail);
 
@@ -366,7 +357,7 @@ export default function AdminDashboard() {
           <div style={{ marginTop: "2rem", paddingTop: "1.5rem", borderTop: "1px solid #F4EEE8", fontSize: "0.75rem", color: "#666", textAlign: "left", lineHeight: "1.6" }}>
             🔐 <strong>Claves iniciales:</strong><br />
             • Admin Director: <code>anluvia2026</code><br />
-            • Especialista Kinesiólogo: <code>kine2026</code><br />
+            • Especialista Kinesiología: <code>kine2026</code><br />
             • Recepción: <code>recepcion2026</code><br />
             • Editor Web: <code>editor2026</code>
           </div>
@@ -382,7 +373,7 @@ export default function AdminDashboard() {
           <div style={{ marginBottom: "2rem" }}>
             <span style={{ fontSize: "1.6rem", fontWeight: 700, letterSpacing: "0.05em", fontFamily: "serif" }}>ANLUVIA</span>
             <div style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#8B2434", fontWeight: 700, marginTop: "0.2rem" }}>
-              ROLES: {currentUser?.roles.join(" + ").toUpperCase()}
+              ROLES: {currentUser?.roles ? currentUser.roles.join(" + ").toUpperCase() : "INVITADO"}
             </div>
           </div>
 
@@ -546,7 +537,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* AGENDA GENERAL */}
         {activeTab === 'agenda' && (
           <div className="no-print">
             <h1 style={{ fontSize: "2.25rem", margin: "0 0 2rem 0", fontFamily: "serif" }}>Agenda Operativa</h1>
