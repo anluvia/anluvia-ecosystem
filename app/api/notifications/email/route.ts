@@ -11,7 +11,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Falta correo del paciente' }, { status: 400 });
     }
 
-    const htmlTemplate = `
+    // 1. Plantilla de Confirmación para el Paciente
+    const htmlPaciente = `
       <div style="font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #FBF9F6; padding: 40px 20px; color: #1F1F1F;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 20px; padding: 40px; border: 1px solid #A7B7A5;">
           <div style="text-align: center; border-bottom: 1px solid #F4EEE8; padding-bottom: 20px; margin-bottom: 30px;">
@@ -55,15 +56,44 @@ export async function POST(req: NextRequest) {
       </div>
     `;
 
-    const data = await resend.emails.send({
+    // 2. Plantilla de Notificación Interna para ANLUVIA (contacto@anluvia.cl)
+    const htmlClinica = `
+      <div style="font-family: Arial, sans-serif; background-color: #F4EEE8; padding: 30px 20px;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 16px; padding: 30px; border-left: 6px solid #8B2434;">
+          <h2 style="color: #8B2434; margin-top: 0;">🚨 ¡Nueva Reserva Agendada!</h2>
+          <p style="color: #333; font-size: 15px;">Se ha registrado una nueva cita desde la página web:</p>
+
+          <div style="background-color: #FBF9F6; border: 1px solid #A7B7A5; border-radius: 10px; padding: 15px; margin: 20px 0;">
+            <p style="margin: 5px 0;"><strong>👤 Paciente:</strong> ${pacienteNombre}</p>
+            <p style="margin: 5px 0;"><strong>✉️ Email Paciente:</strong> ${pacienteEmail}</p>
+            <p style="margin: 5px 0;"><strong>🩺 Tratamiento:</strong> ${servicio}</p>
+            <p style="margin: 5px 0;"><strong>👩‍⚕️ Especialista:</strong> ${especialista}</p>
+            <p style="margin: 5px 0;"><strong>📅 Fecha & Hora:</strong> ${fecha} a las ${hora} hrs</p>
+          </div>
+
+          <p style="font-size: 13px; color: #666;">Puedes revisar y gestionar esta cita directamente en tu <a href="https://anluvia-ecosystem.vercel.app/admin" style="color: #7D8E7C; font-weight: bold;">Panel Administrativo</a>.</p>
+        </div>
+      </div>
+    `;
+
+    // Enviar correo al Paciente
+    await resend.emails.send({
       from: 'ANLUVIA Clinique <contacto@anluvia.cl>',
-      replyTo: 'contacto@anluvia.cl', // <-- Define explícitamente a dónde van las respuestas
+      replyTo: 'contacto@anluvia.cl',
       to: [pacienteEmail],
       subject: `✨ Cita Confirmada: ${servicio} — ANLUVIA Clinique`,
-      html: htmlTemplate,
+      html: htmlPaciente,
     });
 
-    return NextResponse.json({ success: true, data });
+    // Enviar notificación interna a la clínica
+    await resend.emails.send({
+      from: 'ANLUVIA Sistema <contacto@anluvia.cl>',
+      to: ['contacto@anluvia.cl'],
+      subject: `🚨 [NUEVA CITA] ${pacienteNombre} - ${servicio} (${fecha} ${hora} hrs)`,
+      html: htmlClinica,
+    });
+
+    return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Error al enviar correo:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
