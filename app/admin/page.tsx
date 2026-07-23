@@ -188,20 +188,16 @@ export default function AdminDashboard() {
       const { data: evoData } = await supabase.from('evoluciones').select('*').order('created_at', { ascending: false });
       if (evoData) setEvoluciones(evoData);
 
-      // Cargar Compras / Gastos
       const localGastos = localStorage.getItem('anluvia_gastos');
       if (localGastos) setGastos(JSON.parse(localGastos));
 
-      // Cargar Ventas / DTEs
       const localVentas = localStorage.getItem('anluvia_ventas');
       if (localVentas) setVentas(JSON.parse(localVentas));
 
-      // Cargar Campañas de Marketing
       const localCampanas = localStorage.getItem('anluvia_campanas');
       if (localCampanas) {
         setCampanas(JSON.parse(localCampanas));
       } else {
-        // Campañas iniciales de muestra
         const muestraCampanas = [
           { id: '1', nombre: 'Campaña Estética Facial Invierno', plataforma: 'Meta Ads (Instagram/FB)', inversion: 150000, clics: 850, citas: 12, fecha: '2026-07-01' },
           { id: '2', nombre: 'Búsqueda Google Kinesiología Las Condes', plataforma: 'Google Ads', inversion: 120000, clics: 420, citas: 9, fecha: '2026-07-05' },
@@ -338,7 +334,6 @@ export default function AdminDashboard() {
     if (!gastoConcepto || !gastoMonto) return;
 
     setGuardandoGasto(true);
-    setMensajeGasto('');
 
     const nuevoGasto = {
       id: Date.now().toString(),
@@ -407,7 +402,7 @@ export default function AdminDashboard() {
     window.print();
   };
 
-  // CÁLCULOS FINANCIEROS Y RENTABILIDAD
+  // CÁLCULOS
   const totalCitas = reservas.length;
   const pacientesUnicos = Array.from(new Set(reservas.map(r => r.paciente_email))).map(email => {
     const reserva = reservas.find(r => r.paciente_email === email);
@@ -423,13 +418,9 @@ export default function AdminDashboard() {
   const gananciaNeta = ingresosBrutos - egresosTotales;
   const margenRentabilidad = ingresosBrutos > 0 ? Math.round((gananciaNeta / ingresosBrutos) * 100) : 0;
 
-  // CÁLCULOS DE MARKETING & ADS
   const totalInversionAds = campanas.reduce((acc, c) => acc + Number(c.inversion || 0), 0);
   const totalCitasAds = campanas.reduce((acc, c) => acc + Number(c.citas || 0), 0);
-  const totalClicsAds = campanas.reduce((acc, c) => acc + Number(c.clics || 0), 0);
   const costoPorCitaCPA = totalCitasAds > 0 ? Math.round(totalInversionAds / totalCitasAds) : 0;
-  
-  // Ingreso Estimado Generado por Ads (Promedio $48.000 CLP por cita)
   const ingresosGeneradosAds = totalCitasAds * 48000;
   const roasMarketing = totalInversionAds > 0 ? (ingresosGeneradosAds / totalInversionAds).toFixed(1) : "0.0";
 
@@ -509,7 +500,7 @@ export default function AdminDashboard() {
 
               <div className="kpi-card">
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#8B2434", letterSpacing: "0.1em", textTransform: "uppercase" }}>Compras & Gastos</span>
-                <div style={{ fontSize: "1.8rem", fontWeight 700, color: "#8B2434", marginTop: "0.3rem" }}>
+                <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#8B2434", marginTop: "0.3rem" }}>
                   ${egresosTotales.toLocaleString('es-CL')} <span style={{ fontSize: "0.8rem", color: "#666" }}>CLP</span>
                 </div>
               </div>
@@ -523,7 +514,7 @@ export default function AdminDashboard() {
 
               <div className="kpi-card">
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#7D8E7C", letterSpacing: "0.1em", textTransform: "uppercase" }}>Margen Rentabilidad</span>
-                <div style={{ fontSize: "1.8rem", fontWeight 700, color: "#1F1F1F", marginTop: "0.3rem" }}>
+                <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.3rem" }}>
                   {margenRentabilidad}%
                 </div>
               </div>
@@ -560,7 +551,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* PESTAÑA 2: MARKETING & ROI ADS */}
+        {/* PESTAÑA 2: MARKETING */}
         {activeTab === 'marketing' && (
           <div className="no-print">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
@@ -570,40 +561,37 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* TARJETAS DE RENDIMIENTO MARKETING */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", marginBottom: "2.5rem" }}>
               <div className="kpi-card">
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#8B2434", letterSpacing: "0.1em", textTransform: "uppercase" }}>Inversión Total Ads</span>
-                <div style={{ fontSize: "1.8rem", fontWeight 700, color: "#1F1F1F", marginTop: "0.3rem" }}>
+                <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.3rem" }}>
                   ${totalInversionAds.toLocaleString('es-CL')} <span style={{ fontSize: "0.8rem", color: "#666" }}>CLP</span>
                 </div>
               </div>
 
               <div className="kpi-card">
-                <span style={{ fontSize: "0.75rem", fontWeight 700, color: "#7D8E7C", letterSpacing: "0.1em", textTransform: "uppercase" }}>Citas Generadas por Ads</span>
-                <div style={{ fontSize: "1.8rem", fontWeight 700, color: "#137333", marginTop: "0.3rem" }}>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#7D8E7C", letterSpacing: "0.1em", textTransform: "uppercase" }}>Citas Generadas</span>
+                <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#137333", marginTop: "0.3rem" }}>
                   {totalCitasAds} <span style={{ fontSize: "0.8rem", color: "#666" }}>pacientes</span>
                 </div>
               </div>
 
               <div className="kpi-card">
-                <span style={{ fontSize: "0.75rem", fontWeight 700, color: "#8B2434", letterSpacing: "0.1em", textTransform: "uppercase" }}>CPA (Costo por Cita)</span>
-                <div style={{ fontSize: "1.8rem", fontWeight 700, color: "#8B2434", marginTop: "0.3rem" }}>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#8B2434", letterSpacing: "0.1em", textTransform: "uppercase" }}>CPA (Costo por Cita)</span>
+                <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#8B2434", marginTop: "0.3rem" }}>
                   ${costoPorCitaCPA.toLocaleString('es-CL')} <span style={{ fontSize: "0.8rem", color: "#666" }}>CLP</span>
                 </div>
               </div>
 
               <div className="kpi-card">
-                <span style={{ fontSize: "0.75rem", fontWeight 700, color: "#137333", letterSpacing: "0.1em", textTransform: "uppercase" }}>ROAS (Retorno Ads)</span>
-                <div style={{ fontSize: "1.8rem", fontWeight 700, color: "#137333", marginTop: "0.3rem" }}>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#137333", letterSpacing: "0.1em", textTransform: "uppercase" }}>ROAS (Retorno Ads)</span>
+                <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#137333", marginTop: "0.3rem" }}>
                   {roasMarketing}x
                 </div>
-                <span style={{ fontSize: "0.75rem", color: "#666" }}>Ganas ${roasMarketing} por cada $1 gastado</span>
               </div>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "2rem" }}>
-              {/* Formulario para Agregar Campaña */}
               <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
                 <h3 className="playfair" style={{ fontSize: "1.3rem", marginTop: 0, color: "#8B2434" }}>
                   + Registrar Campaña de Anuncios
@@ -645,29 +633,28 @@ export default function AdminDashboard() {
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
                     <div>
                       <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
-                        Clics / Interacciones
+                        Clics
                       </label>
                       <input type="number" placeholder="Ej. 500" value={campClics} onChange={(e) => setCampClics(e.target.value)} className="input-anluvia" />
                     </div>
 
                     <div>
                       <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
-                        Citas Conseguidas
+                        Citas
                       </label>
                       <input type="number" placeholder="Ej. 8" value={campCitas} onChange={(e) => setCampCitas(e.target.value)} className="input-anluvia" />
                     </div>
                   </div>
 
                   <button type="submit" disabled={guardandoCampana} className="btn-salvia" style={{ width: "100%", padding: "0.85rem", marginTop: "0.5rem" }}>
-                    {guardandoCampana ? "Guardando..." : "📣 Guardar Rendimiento de Campaña"}
+                    {guardandoCampana ? "Guardando..." : "📣 Guardar Campaña"}
                   </button>
                 </form>
               </div>
 
-              {/* Tabla de Campañas y Resultados */}
               <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
                 <h3 className="playfair" style={{ fontSize: "1.3rem", marginTop: 0, color: "#1F1F1F", marginBottom: "1.5rem" }}>
-                  Campañas Activas & Históricas ({campanas.length})
+                  Campañas Activas ({campanas.length})
                 </h3>
 
                 {campanas.length > 0 ? (
@@ -678,13 +665,13 @@ export default function AdminDashboard() {
                         <th>Inversión ($)</th>
                         <th>Citas</th>
                         <th>CPA ($/Cita)</th>
-                        <th>ROAS Est.</th>
+                        <th>ROAS</th>
                         <th>Acción</th>
                       </tr>
                     </thead>
                     <tbody>
                       {campanas.map((c) => {
-                        const cpaIndividual = c.citas > 0 ? Math.round(c.inversion / c.citas) : 0;
+                        const cpaInd = c.citas > 0 ? Math.round(c.inversion / c.citas) : 0;
                         const roasInd = c.inversion > 0 ? ((c.citas * 48000) / c.inversion).toFixed(1) : "0.0";
 
                         return (
@@ -695,7 +682,7 @@ export default function AdminDashboard() {
                             </td>
                             <td style={{ fontWeight: 600 }}>${Number(c.inversion).toLocaleString('es-CL')}</td>
                             <td><strong style={{ color: "#137333" }}>{c.citas}</strong> citas</td>
-                            <td>${cpaIndividual.toLocaleString('es-CL')}</td>
+                            <td>${cpaInd.toLocaleString('es-CL')}</td>
                             <td><span style={{ backgroundColor: "#E6F4EA", color: "#137333", padding: "0.2rem 0.6rem", borderRadius: "9999px", fontWeight: 700, fontSize: "0.8rem" }}>{roasInd}x</span></td>
                             <td>
                               <button onClick={() => eliminarCampana(c.id)} style={{ background: "none", border: "none", color: "#D93025", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600 }}>
@@ -709,7 +696,7 @@ export default function AdminDashboard() {
                   </table>
                 ) : (
                   <p style={{ color: "#666", textAlign: "center", padding: "2rem 0" }}>
-                    Aún no has registrado campañas de anuncios. Ingresa el primer presupuesto en el formulario lateral.
+                    Aún no has registrado campañas.
                   </p>
                 )}
               </div>
@@ -1109,7 +1096,7 @@ export default function AdminDashboard() {
                       <div style={{ fontSize: "0.85rem", color: "#555" }}>{selectedPacienteEmail}</div>
                     </div>
                     <div style={{ textAlign: "right" }}>
-                      <span style={{ fontSize: "0.75rem", color: "#7D8E7C", fontWeight: 700, letterSpacing: "0.1em" }}>ESPECIALISTA TRATANTE</span>
+                      <span style={{ fontSize: "0.75rem", color: "#7D8E7C", fontWeight 700, letterSpacing: "0.1em" }}>ESPECIALISTA TRATANTE</span>
                       <div style={{ fontSize: "1rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.2rem" }}>{especialista}</div>
                       <div style={{ fontSize: "0.85rem", color: "#555" }}>Kinesiología & Rehabilitación</div>
                     </div>
