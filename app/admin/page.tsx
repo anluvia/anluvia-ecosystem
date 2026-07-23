@@ -41,7 +41,7 @@ export default function AdminDashboard() {
   const [loadingSii, setLoadingSii] = useState(false);
   const [resultadoSii, setResultadoSii] = useState<any>(null);
 
-  // Formulario Ficha
+  // Formulario Ficha Kinésica
   const [selectedPacienteEmail, setSelectedPacienteEmail] = useState("");
   const [selectedPacienteNombre, setSelectedPacienteNombre] = useState("");
   const [numSesion, setNumSesion] = useState(1);
@@ -94,7 +94,7 @@ export default function AdminDashboard() {
     const localUsers = localStorage.getItem("anluvia_equipo_users");
     let userList: UsuarioEquipo[] = [];
     if (localUsers) {
-      try { userList = JSON.parse(localUsers); } catch (e) { userList = usuariosBaseIniciales; }
+      try { userList = JSON.parse(localUsers); } catch { userList = usuariosBaseIniciales; }
     } else {
       userList = usuariosBaseIniciales;
       localStorage.setItem("anluvia_equipo_users", JSON.stringify(usuariosBaseIniciales));
@@ -112,7 +112,7 @@ export default function AdminDashboard() {
         else if (activeUser?.roles?.includes('recepcion')) setActiveTab('agenda');
         else if (activeUser?.roles?.includes('editor')) setActiveTab('contenido');
         cargarDatos();
-      } catch (e) {}
+      } catch {}
     }
   }, []);
 
@@ -267,7 +267,7 @@ export default function AdminDashboard() {
         setSubjetivo(""); setObjetivo(""); setTratamiento(""); setIndicaciones("");
         cargarDatos();
       }
-    } catch (err: any) { setMensajeFicha("⚠️ Error al guardar."); }
+    } catch { setMensajeFicha("⚠️ Error al guardar."); }
     finally { setGuardandoEvolucion(false); }
   };
 
@@ -357,7 +357,7 @@ export default function AdminDashboard() {
           <div style={{ marginTop: "2rem", paddingTop: "1.5rem", borderTop: "1px solid #F4EEE8", fontSize: "0.75rem", color: "#666", textAlign: "left", lineHeight: "1.6" }}>
             🔐 <strong>Claves iniciales:</strong><br />
             • Admin Director: <code>anluvia2026</code><br />
-            • Especialista Kinesiología: <code>kine2026</code><br />
+            • Especialista Kinesiólogo: <code>kine2026</code><br />
             • Recepción: <code>recepcion2026</code><br />
             • Editor Web: <code>editor2026</code>
           </div>
@@ -439,7 +439,7 @@ export default function AdminDashboard() {
               </div>
               <div style={{ backgroundColor: "#FFF", padding: "1.5rem", borderRadius: "20px", border: "1px solid #E2E8F0" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight 700, color: "#8B2434", textTransform: "uppercase" }}>Gastos</span>
-                <div style={{ fontSize: "1.8rem", fontWeight 700, color: "#8B2434", marginTop: "0.3rem" }}>${egresosTotales.toLocaleString('es-CL')} CLP</div>
+                <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#8B2434", marginTop: "0.3rem" }}>${egresosTotales.toLocaleString('es-CL')} CLP</div>
               </div>
               <div style={{ backgroundColor: "#FFF", padding: "1.5rem", borderRadius: "20px", border: "1px solid #E2E8F0" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight 700, color: "#137333", textTransform: "uppercase" }}>Ganancia Neta</span>
@@ -447,7 +447,7 @@ export default function AdminDashboard() {
               </div>
               <div style={{ backgroundColor: "#FFF", padding: "1.5rem", borderRadius: "20px", border: "1px solid #E2E8F0" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight 700, color: "#7D8E7C", textTransform: "uppercase" }}>Margen</span>
-                <div style={{ fontSize: "1.8rem", fontWeight 700, marginTop: "0.3rem" }}>{margenRentabilidad}%</div>
+                <div style={{ fontSize: "1.8rem", fontWeight: 700, marginTop: "0.3rem" }}>{margenRentabilidad}%</div>
               </div>
             </div>
           </div>
@@ -470,7 +470,7 @@ export default function AdminDashboard() {
                     <input type="email" placeholder="camila@anluvia.cl" value={nuevoEmail} onChange={(e) => setNuevoEmail(e.target.value)} style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid #ccc" }} />
                   </div>
                   <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight 600, color: "#666" }}>Clave Privada *</label>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666" }}>Clave Privada *</label>
                     <input type="text" placeholder="Ej. camila2026" value={nuevaClave} onChange={(e) => setNuevaClave(e.target.value)} style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid #ccc" }} required />
                   </div>
                   <div>
