@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { emitirBoletaSII, emitirFacturaSII } from "../../lib/sii";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -9,6 +10,10 @@ export default function AdminDashboard() {
   const [evoluciones, setEvoluciones] = useState<any[]>([]);
   const [gastos, setGastos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Estados de Prueba SII
+  const [loadingSii, setLoadingSii] = useState(false);
+  const [resultadoSii, setResultadoSii] = useState<any>(null);
 
   // Formulario de Evolucion Kinesica
   const [selectedPacienteEmail, setSelectedPacienteEmail] = useState('');
@@ -173,7 +178,6 @@ export default function AdminDashboard() {
       const { data: evoData } = await supabase.from('evoluciones').select('*').order('created_at', { ascending: false });
       if (evoData) setEvoluciones(evoData);
 
-      // Cargar gastos desde Supabase si existe la tabla, o desde localStorage
       const { data: gastosData, error: gastosErr } = await supabase.from('gastos').select('*').order('fecha', { ascending: false });
       if (gastosData && !gastosErr) {
         setGastos(gastosData);
@@ -195,6 +199,42 @@ export default function AdminDashboard() {
 
     const evolucionesPaciente = evoluciones.filter(e => e.paciente_email === pacienteEmail);
     setNumSesion(evolucionesPaciente.length + 1);
+  };
+
+  const probarBoletaModal = async () => {
+    setLoadingSii(true);
+    setResultadoSii(null);
+
+    const res = await emitirBoletaSII({
+      pacienteNombre: "Valentina Silva (Prueba)",
+      pacienteEmail: "contacto@anluvia.cl",
+      montoTotal: 45000,
+      glosaServicio: "Kinesiología & Recuperación Física - ANLUVIA",
+      exento: true
+    });
+
+    setResultadoSii(res);
+    setLoadingSii(false);
+  };
+
+  const probarFacturaModal = async () => {
+    setLoadingSii(true);
+    setResultadoSii(null);
+
+    const res = await emitirFacturaSII({
+      rutEmpresa: "76.987.654-3",
+      razonSocial: "Inversiones & Salud SpA",
+      giro: "Servicios Médicos Corporativos",
+      direccion: "Av. Apoquindo #4500, Of 802",
+      comuna: "Las Condes",
+      email: "finanzas@empresa.cl",
+      montoNeto: 100000,
+      glosaServicio: "Convenio Kinesiología Preventiva ANLUVIA",
+      exento: true
+    });
+
+    setResultadoSii(res);
+    setLoadingSii(false);
   };
 
   const guardarEvolucion = async (e: React.FormEvent) => {
@@ -252,9 +292,7 @@ export default function AdminDashboard() {
     };
 
     try {
-      // Intentar guardar en Supabase
-      const { error } = await supabase.from('gastos').insert([nuevoGasto]);
-      
+      await supabase.from('gastos').insert([nuevoGasto]);
       const nuevosGastos = [nuevoGasto, ...gastos];
       setGastos(nuevosGastos);
       localStorage.setItem('anluvia_gastos', JSON.stringify(nuevosGastos));
@@ -328,7 +366,7 @@ export default function AdminDashboard() {
               📊 Dashboard & Métricas
             </div>
             <div className={`sidebar-item ${activeTab === 'finanzas' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('finanzas')}>
-              💸 Finanzas & Rentabilidad
+              💸 Finanzas & Facturación SII
             </div>
             <div className={`sidebar-item ${activeTab === 'agenda' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('agenda')}>
               📅 Agenda & Citas ({reservas.length})
@@ -351,7 +389,7 @@ export default function AdminDashboard() {
       {/* Área Principal */}
       <main style={{ flex: 1, padding: "2.5rem 3rem", overflowY: "auto" }}>
 
-        {/* PESTAÑA 1: DASHBOARD & MÉTRICAS */}
+        {/* PESTAÑA 1: DASHBOARD */}
         {activeTab === 'dashboard' && (
           <div className="no-print">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
@@ -362,7 +400,6 @@ export default function AdminDashboard() {
               <button onClick={cargarDatos} className="btn-salvia">🔄 Actualizar Datos</button>
             </div>
 
-            {/* Tarjetas KPI */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", marginBottom: "2.5rem" }}>
               <div className="kpi-card">
                 <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#7D8E7C", letterSpacing: "0.1em", textTransform: "uppercase" }}>Ingresos Brutos</span>
@@ -393,7 +430,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Demanda por Servicio */}
             <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem", boxShadow: "0 10px 30px -10px rgba(0,0,0,0.03)" }}>
               <h3 className="playfair" style={{ fontSize: "1.4rem", margin: "0 0 1.5rem 0", color: "#1F1F1F" }}>
                 🩺 Demanda por Especialidad & Tratamiento
@@ -425,14 +461,44 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* PESTAÑA 2: FINANZAS & RENTABILIDAD */}
+        {/* PESTAÑA 2: FINANZAS & PRUEBAS SII */}
         {activeTab === 'finanzas' && (
           <div className="no-print">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
               <div>
-                <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#8B2434", letterSpacing: "0.1em" }}>CONTROL FINANCIERO</span>
-                <h1 className="playfair" style={{ fontSize: "2.25rem", margin: "0.25rem 0 0 0" }}>Compras & Gastos de la Clínica</h1>
+                <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#8B2434", letterSpacing: "0.1em" }}>FINANZAS & EMISIÓN DTE</span>
+                <h1 className="playfair" style={{ fontSize: "2.25rem", margin: "0.25rem 0 0 0" }}>Control Financiero & Módulo SII</h1>
               </div>
+            </div>
+
+            {/* SECCIÓN DE PRUEBAS DEL MOTOR SII */}
+            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "2px solid #8B2434", padding: "2rem", marginBottom: "2rem", boxShadow: "0 10px 30px -10px rgba(139, 36, 52, 0.1)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                <div>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#8B2434", letterSpacing: "0.1em", textTransform: "uppercase" }}>MODO SIMULACIÓN / SANDBOX EN VIVO</span>
+                  <h3 className="playfair" style={{ fontSize: "1.4rem", margin: "0.2rem 0 0 0" }}>🧪 Probador de Documentos Tributarios SII</h3>
+                </div>
+
+                <div style={{ display: "flex", gap: "1rem" }}>
+                  <button onClick={probarBoletaModal} disabled={loadingSii} className="btn-salvia">
+                    {loadingSii ? "Procesando..." : "🧾 Probar Boleta SII"}
+                  </button>
+                  <button onClick={probarFacturaModal} disabled={loadingSii} className="btn-pdf">
+                    {loadingSii ? "Procesando..." : "📑 Probar Factura SII"}
+                  </button>
+                </div>
+              </div>
+
+              {resultadoSii && (
+                <div style={{ backgroundColor: "#F4EEE8", borderRadius: "12px", padding: "1.25rem", marginTop: "1.25rem", borderLeft: "4px solid #7D8E7C" }}>
+                  <div style={{ fontWeight: 700, color: "#1F1F1F", marginBottom: "0.5rem" }}>
+                    🎉 Respuesta de la API Tributaria (Modo: {resultadoSii.modo?.toUpperCase()})
+                  </div>
+                  <pre style={{ fontSize: "0.85rem", color: "#333", backgroundColor: "#FFF", padding: "1rem", borderRadius: "8px", overflowX: "auto", margin: 0 }}>
+                    {JSON.stringify(resultadoSii, null, 2)}
+                  </pre>
+                </div>
+              )}
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "2rem" }}>
@@ -453,7 +519,7 @@ export default function AdminDashboard() {
                     <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
                       Concepto / Detalle de la Compra *
                     </label>
-                    <input type="text" placeholder="Ej. Insumos kinesiológicos, cremas, arriendo..." value={gastoConcepto} onChange={(e) => setGastoConcepto(e.target.value)} className="input-anluvia" required />
+                    <input type="text" placeholder="Ej. Insumos kinesiológicos, cremas..." value={gastoConcepto} onChange={(e) => setGastoConcepto(e.target.value)} className="input-anluvia" required />
                   </div>
 
                   <div>
@@ -538,7 +604,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* PESTAÑA 3: AGENDA DE ATENCIÓN */}
+        {/* PESTAÑA 3: AGENDA */}
         {activeTab === 'agenda' && (
           <div className="no-print">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
@@ -591,7 +657,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* PESTAÑA 4: FICHAS & EVOLUCIÓN KINÉSICA */}
+        {/* PESTAÑA 4: FICHAS */}
         {activeTab === 'fichas' && (
           <div>
             <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
@@ -610,7 +676,6 @@ export default function AdminDashboard() {
               </button>
             </div>
 
-            {/* Selector de Paciente */}
             <div className="no-print" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "1.5rem", marginBottom: "2rem" }}>
               <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#666", marginBottom: "0.5rem" }}>
                 Seleccionar Paciente para la Sesión:
@@ -710,7 +775,6 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* --- DOCUMENTO PARA IMPRESIÓN / DESCARGA PDF --- */}
                 <div id="area-pdf-oficial" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "2px solid #7D8E7C", padding: "3rem", marginTop: "2rem" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #8B2434", paddingBottom: "1.5rem", marginBottom: "2rem" }}>
                     <div>
