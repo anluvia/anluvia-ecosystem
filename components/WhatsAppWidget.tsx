@@ -1,11 +1,35 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { WHATSAPP_CLINICA_NUMERO } from '../lib/whatsapp';
+
+// --- ICONOS SVG OFICIALES ---
+const IconoInstagram = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.668-.072-4.948-.197-4.347-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+);
+
+const IconoFacebook = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+);
+
+const IconoTikTok = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.09-1.47-.88-.64-1.6-1.47-2.12-2.44v10.8c.02 2.55-1.13 5.07-3.18 6.58-1.48 1.1-3.34 1.7-5.22 1.73-2.61.03-5.31-1.35-6.67-3.58-1.1-1.8-1.32-4.11-.6-6.1.72-1.99 2.5-3.6 4.53-4.14 1.1-.3 2.26-.29 3.39-.02v4.1c-.73-.24-1.56-.25-2.28-.02-1.2.36-2.2 1.4-2.42 2.64-.23 1.2.2 2.51 1.05 3.4.77.83 1.96 1.27 3.08 1.16 1.44-.12 2.7-1.22 2.97-2.64.12-.53.11-1.07.11-1.61V.02z"/></svg>
+);
 
 export default function WhatsAppWidget() {
   const mensajeDefault = encodeURIComponent("¡Hola ANLUVIA Clinique! ✨ Quisiera consultar por información y disponibilidad de tratamientos.");
   const urlWhatsApp = `https://wa.me/${WHATSAPP_CLINICA_NUMERO}?text=${mensajeDefault}`;
+
+  const [hoveredRed, setHoveredRed] = useState<string | null>(null);
+
+  const colorBase = "#1F1F1F"; // Gris oscuro elegante
+  const colorAnluvia = "#8B2434"; // Guinda/Maroon ANLUVIA
+
+  const redesSociales = [
+    { nombre: 'Instagram', url: 'https://instagram.com/anluvia.cl', Icono: IconoInstagram },
+    { nombre: 'Facebook', url: 'https://facebook.com/anluvia.cl', Icono: IconoFacebook },
+    { nombre: 'TikTok', url: 'https://tiktok.com/@anluvia.cl', Icono: IconoTikTok },
+  ];
 
   return (
     <aside
@@ -19,36 +43,79 @@ export default function WhatsAppWidget() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-end',
-        gap: '10px',
-        pointerEvents: 'auto'
+        gap: '12px',
+        pointerEvents: 'auto',
+        fontFamily: 'Inter, sans-serif'
       }}
     >
-      {/* Redes Sociales */}
-      <div style={{ display: 'flex', gap: '10px', backgroundColor: '#FFFFFF', padding: '8px 14px', borderRadius: '30px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', border: '1px solid #E2E8F0' }}>
-        <a href="https://instagram.com/anluvia.cl" target="_blank" rel="noopener noreferrer" title="Instagram" style={{ textDecoration: 'none', fontSize: '1.2rem' }}>📸</a>
-        <a href="https://facebook.com/anluvia.cl" target="_blank" rel="noopener noreferrer" title="Facebook" style={{ textDecoration: 'none', fontSize: '1.2rem' }}>📘</a>
-        <a href="https://tiktok.com/@anluvia.cl" target="_blank" rel="noopener noreferrer" title="TikTok" style={{ textDecoration: 'none', fontSize: '1.2rem' }}>🎵</a>
+      {/* Contenedor de Redes Sociales */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          gap: '15px', 
+          backgroundColor: 'rgba(255, 255, 255, 0.90)', // Fondo blanco semi-transparente
+          padding: '10px 18px', 
+          borderRadius: '30px', 
+          boxShadow: '0 4px 20px rgba(0,0,0,0.12)', 
+          backdropFilter: 'blur(5px)', // Efecto esmerilado elegante
+          border: '1px solid #F4EEE8',
+          transition: 'all 0.3s ease'
+        }}
+      >
+        {redesSociales.map((red) => {
+          const isHovered = hoveredRed === red.nombre;
+          return (
+            <a
+              key={red.nombre}
+              href={red.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`Síguenos en ${red.nombre}`}
+              onMouseEnter={() => setHoveredRed(red.nombre)}
+              onMouseLeave={() => setHoveredRed(null)}
+              style={{ 
+                textDecoration: 'none', 
+                color: isHovered ? colorAnluvia : colorBase, 
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.3s ease',
+                transform: isHovered ? 'scale(1.15)' : 'scale(1)'
+              }}
+            >
+              <red.Icono />
+            </a>
+          );
+        })}
       </div>
 
-      {/* Botón WhatsApp */}
+      {/* Botón Principal WhatsApp */}
       <a
         href={urlWhatsApp}
         target="_blank"
         rel="noopener noreferrer"
         style={{
-          backgroundColor: '#25D366',
+          backgroundColor: '#25D366', // Color oficial WhatsApp
           color: '#FFFFFF',
           borderRadius: '50px',
-          padding: '12px 22px',
+          padding: '12px 24px',
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
-          boxShadow: '0 8px 25px rgba(37, 211, 102, 0.5)',
+          boxShadow: '0 8px 25px rgba(37, 211, 102, 0.4)',
           textDecoration: 'none',
           fontWeight: 700,
           fontSize: '0.92rem',
-          fontFamily: 'sans-serif',
-          border: '2px solid #FFFFFF'
+          border: '2px solid #FFFFFF',
+          transition: 'all 0.3s ease'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-3px)';
+          e.currentTarget.style.boxShadow = '0 12px 30px rgba(37, 211, 102, 0.5)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 8px 25px rgba(37, 211, 102, 0.4)';
         }}
       >
         <span style={{ fontSize: '1.4rem', lineHeight: 1 }}>💬</span>
