@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { crearGoogleCalendarLink } from "../../lib/calendar";
 
 export default function PortalPage() {
   const [user, setUser] = useState<any>(null);
@@ -38,6 +39,24 @@ export default function PortalPage() {
       background-color: #6a7b69;
     }
 
+    .btn-gcal {
+      background-color: #FFFFFF;
+      color: #1a73e8;
+      border: 1px solid #1a73e8;
+      padding: 0.5rem 1rem;
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+    .btn-gcal:hover {
+      background-color: #f1f8fe;
+    }
+
     .badge-status {
       padding: 0.25rem 0.75rem;
       border-radius: 9999px;
@@ -58,7 +77,6 @@ export default function PortalPage() {
       setUser(user);
 
       if (user?.email) {
-        // Cargar citas del usuario
         const { data: resData } = await supabase
           .from('reservas')
           .select('*')
@@ -67,7 +85,6 @@ export default function PortalPage() {
 
         if (resData) setReservas(resData);
 
-        // Cargar evoluciones kinesicas del usuario
         const { data: evoData } = await supabase
           .from('evoluciones')
           .select('*')
@@ -126,7 +143,7 @@ export default function PortalPage() {
               Bienvenido(a){user?.user_metadata?.full_name ? `, ${user.user_metadata.full_name}` : ""}
             </h1>
             <p style={{ color: "#666", margin: 0, fontSize: "0.95rem" }}>
-              Revisa el avance de tu tratamiento kinésico y tus próximas citas.
+              Revisa tus citas programadas e historial clínico.
             </p>
           </div>
           <a href="/reservar" className="btn-salvia">
@@ -134,38 +151,73 @@ export default function PortalPage() {
           </a>
         </div>
 
-        {/* Historial de Evolucion Kinesica e Indicaciones */}
+        {/* Sección de Citas Activas */}
         <div style={{ marginBottom: "3rem" }}>
+          <h2 className="playfair" style={{ fontSize: "1.5rem", marginBottom: "1.25rem" }}>Tus Citas Programadas</h2>
+
+          {loading ? (
+            <p>Cargando tus citas...</p>
+          ) : reservas.length > 0 ? (
+            <div style={{ display: "grid", gap: "1.25rem" }}>
+              {reservas.map((r) => {
+                const gCalUrl = crearGoogleCalendarLink({
+                  titulo: r.servicio,
+                  especialista: r.especialista,
+                  fecha: r.fecha,
+                  hora: r.hora
+                });
+
+                return (
+                  <div key={r.id} className="card-portal" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+                    <div>
+                      <span className="badge-status" style={{ backgroundColor: "#E6F4EA", color: "#137333", marginBottom: "0.5rem" }}>
+                        {r.estado || 'Confirmada'}
+                      </span>
+                      <h3 style={{ fontSize: "1.2rem", margin: "0.25rem 0", color: "#1F1F1F" }}>{r.servicio}</h3>
+                      <p style={{ color: "#666", fontSize: "0.9rem", margin: 0 }}>
+                        Especialista: <strong>{r.especialista}</strong>
+                      </p>
+                    </div>
+
+                    <div style={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.5rem" }}>
+                      <div style={{ fontWeight: 700, fontSize: "1.1rem", color: "#8B2434" }}>{r.fecha}</div>
+                      <div style={{ fontSize: "0.9rem", color: "#666" }}>{r.hora} hrs</div>
+                      
+                      <a href={gCalUrl} target="_blank" rel="noopener noreferrer" className="btn-gcal">
+                        📅 Guardar en Google Calendar
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="card-portal" style={{ textAlign: "center", padding: "2rem" }}>
+              <p style={{ color: "#666" }}>Aún no tienes citas agendadas.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Historial Kinésico */}
+        <div>
           <h2 className="playfair" style={{ fontSize: "1.5rem", marginBottom: "1.25rem", color: "#8B2434" }}>
             🩺 Mi Evolución Kinésica & Indicaciones
           </h2>
 
-          {loading ? (
-            <p>Cargando información médica...</p>
-          ) : evoluciones.length > 0 ? (
+          {evoluciones.length > 0 ? (
             <div style={{ display: "grid", gap: "1.25rem" }}>
               {evoluciones.map((evo) => (
                 <div key={evo.id} className="card-portal" style={{ borderLeft: "5px solid #7D8E7C" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                    <div>
-                      <span className="badge-status" style={{ backgroundColor: "#E6F4EA", color: "#137333" }}>
-                        Sesión #{evo.numero_sesion} Registrada
-                      </span>
-                      <h3 style={{ fontSize: "1.1rem", margin: "0.5rem 0 0 0", color: "#1F1F1F" }}>
-                        Atención con {evo.especialista}
-                      </h3>
-                    </div>
-                    <div style={{ textAlign: "right", fontSize: "0.85rem", color: "#666" }}>
-                      {new Date(evo.created_at).toLocaleDateString()}
-                    </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                    <span className="badge-status" style={{ backgroundColor: "#E6F4EA", color: "#137333" }}>
+                      Sesión #{evo.numero_sesion} Registrada
+                    </span>
+                    <span style={{ fontSize: "0.85rem", color: "#666" }}>{new Date(evo.created_at).toLocaleDateString()}</span>
                   </div>
-
                   {evo.indicaciones && (
                     <div style={{ backgroundColor: "#F4EEE8", padding: "1rem", borderRadius: "12px", marginTop: "0.5rem" }}>
-                      <strong style={{ color: "#8B2434", fontSize: "0.9rem" }}>📋 Indicaciones y Ejercicios para el Hogar:</strong>
-                      <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.9rem", color: "#4A4A4A" }}>
-                        {evo.indicaciones}
-                      </p>
+                      <strong style={{ color: "#8B2434", fontSize: "0.9rem" }}>📋 Indicaciones:</strong>
+                      <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.9rem", color: "#4A4A4A" }}>{evo.indicaciones}</p>
                     </div>
                   )}
                 </div>
@@ -173,40 +225,7 @@ export default function PortalPage() {
             </div>
           ) : (
             <div className="card-portal" style={{ textAlign: "center", padding: "2rem" }}>
-              <p style={{ color: "#666" }}>Aún no tienes registros de evolución kinésica cargados por tu especialista.</p>
-            </div>
-          )}
-        </div>
-
-        {/* Sección de Citas Activas */}
-        <div>
-          <h2 className="playfair" style={{ fontSize: "1.5rem", marginBottom: "1.25rem" }}>Tus Citas Programadas</h2>
-
-          {loading ? (
-            <p>Cargando tus citas...</p>
-          ) : reservas.length > 0 ? (
-            <div style={{ display: "grid", gap: "1.25rem" }}>
-              {reservas.map((r) => (
-                <div key={r.id} className="card-portal" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
-                  <div>
-                    <span className="badge-status" style={{ backgroundColor: "#E6F4EA", color: "#137333", marginBottom: "0.5rem" }}>
-                      {r.estado || 'Confirmada'}
-                    </span>
-                    <h3 style={{ fontSize: "1.2rem", margin: "0.25rem 0", color: "#1F1F1F" }}>{r.servicio}</h3>
-                    <p style={{ color: "#666", fontSize: "0.9rem", margin: 0 }}>
-                      Especialista: <strong>{r.especialista}</strong>
-                    </p>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontWeight: 700, fontSize: "1.1rem", color: "#8B2434" }}>{r.fecha}</div>
-                    <div style={{ fontSize: "0.9rem", color: "#666" }}>{r.hora} hrs</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="card-portal" style={{ textAlign: "center", padding: "2rem" }}>
-              <p style={{ color: "#666" }}>Aún no tienes citas agendadas.</p>
+              <p style={{ color: "#666" }}>Aún no tienes registros de evolución kinésica.</p>
             </div>
           )}
         </div>
