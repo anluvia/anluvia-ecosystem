@@ -1,5 +1,4 @@
-// Numero oficial de la clinica (Formato internacional Chile: 569XXXXXXXX)
-export const WHATSAPP_CLINICA_NUMERO = "56912345678"; // <--- Cambia por el telefono real de ANLUVIA
+export const WHATSAPP_CLINICA_NUMERO = "56945524877";
 
 export function crearWhatsAppLink(params: {
   telefono?: string;
