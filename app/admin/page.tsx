@@ -25,6 +25,8 @@ export default function AdminDashboard() {
   const [evoluciones, setEvoluciones] = useState<any[]>([]);
   const [gastos, setGastos] = useState<any[]>([]);
   const [ventas, setVentas] = useState<any[]>([]);
+  const [campanas, setCampanas] = useState<any[]>([]);
+  const [blogs, setBlogs] = useState<any[]>([]);
   const [usuarios, setUsuarios] = useState<UsuarioEquipo[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -54,6 +56,20 @@ export default function AdminDashboard() {
   const [gastoFecha, setGastoFecha] = useState(new Date().toISOString().split("T")[0]);
   const [mensajeGasto, setMensajeGasto] = useState("");
 
+  // Formulario Marketing
+  const [campNombre, setCampNombre] = useState("");
+  const [campPlataforma, setCampPlataforma] = useState("Meta Ads (Instagram/FB)");
+  const [campInversion, setCampInversion] = useState("");
+  const [campClics, setCampClics] = useState("");
+  const [campCitas, setCampCitas] = useState("");
+  const [mensajeCampana, setMensajeCampana] = useState("");
+
+  // Formulario Blog
+  const [blogTitulo, setBlogTitulo] = useState("");
+  const [blogCategoria, setBlogCategoria] = useState("Kinesiología");
+  const [blogContenido, setBlogContenido] = useState("");
+  const [mensajeBlog, setMensajeBlog] = useState("");
+
   const preciosServicios: Record<string, number> = {
     'Kinesiología & Recuperación Física': 45000,
     'Estética Facial Premium & Armonización': 55000,
@@ -72,7 +88,7 @@ export default function AdminDashboard() {
     const localUsers = localStorage.getItem("anluvia_equipo_users");
     let userList: UsuarioEquipo[] = [];
     if (localUsers) {
-      try { userList = JSON.parse(localUsers); } catch (e) { userList = usuariosBaseIniciales; }
+      try { userList = JSON.parse(localUsers); } catch { userList = usuariosBaseIniciales; }
     } else {
       userList = usuariosBaseIniciales;
       localStorage.setItem("anluvia_equipo_users", JSON.stringify(usuariosBaseIniciales));
@@ -90,7 +106,7 @@ export default function AdminDashboard() {
         else if (activeUser?.roles?.includes('recepcion')) setActiveTab('agenda');
         else if (activeUser?.roles?.includes('editor')) setActiveTab('agenda');
         cargarDatos();
-      } catch (e) {}
+      } catch {}
     }
   }, []);
 
@@ -132,6 +148,12 @@ export default function AdminDashboard() {
 
       const localVentas = localStorage.getItem("anluvia_ventas");
       if (localVentas) setVentas(JSON.parse(localVentas));
+
+      const localCampanas = localStorage.getItem("anluvia_campanas");
+      if (localCampanas) setCampanas(JSON.parse(localCampanas));
+
+      const localBlogs = localStorage.getItem("anluvia_blogs");
+      if (localBlogs) setBlogs(JSON.parse(localBlogs));
     } catch (err) {
       console.error(err);
     } finally {
@@ -216,7 +238,7 @@ export default function AdminDashboard() {
         setIndicaciones("");
         cargarDatos();
       }
-    } catch (err) {
+    } catch {
       setMensajeFicha("⚠️ Error al guardar.");
     } finally {
       setGuardandoEvolucion(false);
@@ -250,7 +272,6 @@ export default function AdminDashboard() {
     window.print();
   };
 
-  // Cálculos
   const totalCitas = reservas.length;
   const pacientesUnicos = Array.from(new Set(reservas.map((r) => r.paciente_email))).map((email) => {
     const reserva = reservas.find((r) => r.paciente_email === email);
@@ -400,15 +421,15 @@ export default function AdminDashboard() {
                     <input type="text" placeholder="Ej. Dra. Camila Morales" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid #ccc" }} required />
                   </div>
                   <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666" }}>Email</label>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight 600, color: "#666" }}>Email</label>
                     <input type="email" placeholder="camila@anluvia.cl" value={nuevoEmail} onChange={(e) => setNuevoEmail(e.target.value)} style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid #ccc" }} />
                   </div>
                   <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666" }}>Clave Privada *</label>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight 600, color: "#666" }}>Clave Privada *</label>
                     <input type="text" placeholder="Ej. camila2026" value={nuevaClave} onChange={(e) => setNuevaClave(e.target.value)} style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid #ccc" }} required />
                   </div>
                   <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.5rem" }}>Asignar Rol(es) *</label>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight 600, color: "#666", marginBottom: "0.5rem" }}>Asignar Rol(es) *</label>
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", backgroundColor: "#FBF9F6", padding: "0.85rem", borderRadius: "10px", border: "1px solid #E2E8F0" }}>
                       <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem" }}>
                         <input type="checkbox" checked={rolesSeleccionados.includes('especialista')} onChange={() => toggleRolCheck('especialista')} />
