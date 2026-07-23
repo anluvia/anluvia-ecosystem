@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
-import { emitirBoletaSII, emitirFacturaSII } from "../../lib/sii";
 
 type TipoRol = 'admin' | 'especialista' | 'recepcion' | 'editor';
 
@@ -15,60 +14,43 @@ interface UsuarioEquipo {
 }
 
 export default function AdminDashboard() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<UsuarioEquipo | null>(null);
-  const [inputPassword, setInputPassword] = useState("");
-  const [loginError, setLoginError] = useState("");
+  const [inputPassword, setInputPassword] = useState<string>("");
+  const [loginError, setLoginError] = useState<string>("");
 
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [reservas, setReservas] = useState<any[]>([]);
   const [evoluciones, setEvoluciones] = useState<any[]>([]);
   const [gastos, setGastos] = useState<any[]>([]);
   const [ventas, setVentas] = useState<any[]>([]);
   const [campanas, setCampanas] = useState<any[]>([]);
-  const [blogs, setBlogs] = useState<any[]>([]);
   const [usuarios, setUsuarios] = useState<UsuarioEquipo[]>([]);
-  const [loading, setLoading] = useState(false);
 
-  // Formulario Crear Miembro
-  const [nuevoNombre, setNuevoNombre] = useState("");
-  const [nuevoEmail, setNuevoEmail] = useState("");
-  const [nuevaClave, setNuevaClave] = useState("");
+  // Formulario Crear Usuario
+  const [nuevoNombre, setNuevoNombre] = useState<string>("");
+  const [nuevoEmail, setNuevoEmail] = useState<string>("");
+  const [nuevaClave, setNuevaClave] = useState<string>("");
   const [rolesSeleccionados, setRolesSeleccionados] = useState<TipoRol[]>(['especialista']);
-  const [mensajeUsuario, setMensajeUsuario] = useState("");
+  const [mensajeUsuario, setMensajeUsuario] = useState<string>("");
 
   // Formulario Ficha Kinésica
-  const [selectedPacienteEmail, setSelectedPacienteEmail] = useState("");
-  const [selectedPacienteNombre, setSelectedPacienteNombre] = useState("");
-  const [numSesion, setNumSesion] = useState(1);
-  const [evaDolor, setEvaDolor] = useState(5);
-  const [subjetivo, setSubjetivo] = useState("");
-  const [objetivo, setObjetivo] = useState("");
-  const [tratamiento, setTratamiento] = useState("");
-  const [indicaciones, setIndicaciones] = useState("");
-  const [guardandoEvolucion, setGuardandoEvolucion] = useState(false);
-  const [mensajeFicha, setMensajeFicha] = useState("");
+  const [selectedPacienteEmail, setSelectedPacienteEmail] = useState<string>("");
+  const [selectedPacienteNombre, setSelectedPacienteNombre] = useState<string>("");
+  const [numSesion, setNumSesion] = useState<number>(1);
+  const [evaDolor, setEvaDolor] = useState<number>(5);
+  const [subjetivo, setSubjetivo] = useState<string>("");
+  const [objetivo, setObjetivo] = useState<string>("");
+  const [tratamiento, setTratamiento] = useState<string>("");
+  const [indicaciones, setIndicaciones] = useState<string>("");
+  const [mensajeFicha, setMensajeFicha] = useState<string>("");
 
   // Formulario Gastos
-  const [gastoConcepto, setGastoConcepto] = useState("");
-  const [gastoCategoria, setGastoCategoria] = useState("Insumos Médicos");
-  const [gastoMonto, setGastoMonto] = useState("");
-  const [gastoFecha, setGastoFecha] = useState(new Date().toISOString().split("T")[0]);
-  const [mensajeGasto, setMensajeGasto] = useState("");
-
-  // Formulario Marketing
-  const [campNombre, setCampNombre] = useState("");
-  const [campPlataforma, setCampPlataforma] = useState("Meta Ads (Instagram/FB)");
-  const [campInversion, setCampInversion] = useState("");
-  const [campClics, setCampClics] = useState("");
-  const [campCitas, setCampCitas] = useState("");
-  const [mensajeCampana, setMensajeCampana] = useState("");
-
-  // Formulario Blog
-  const [blogTitulo, setBlogTitulo] = useState("");
-  const [blogCategoria, setBlogCategoria] = useState("Kinesiología");
-  const [blogContenido, setBlogContenido] = useState("");
-  const [mensajeBlog, setMensajeBlog] = useState("");
+  const [gastoConcepto, setGastoConcepto] = useState<string>("");
+  const [gastoCategoria, setGastoCategoria] = useState<string>("Insumos Médicos");
+  const [gastoMonto, setGastoMonto] = useState<string>("");
+  const [gastoFecha, setGastoFecha] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [mensajeGasto, setMensajeGasto] = useState<string>("");
 
   const preciosServicios: Record<string, number> = {
     'Kinesiología & Recuperación Física': 45000,
@@ -88,7 +70,11 @@ export default function AdminDashboard() {
     const localUsers = localStorage.getItem("anluvia_equipo_users");
     let userList: UsuarioEquipo[] = [];
     if (localUsers) {
-      try { userList = JSON.parse(localUsers); } catch { userList = usuariosBaseIniciales; }
+      try {
+        userList = JSON.parse(localUsers);
+      } catch {
+        userList = usuariosBaseIniciales;
+      }
     } else {
       userList = usuariosBaseIniciales;
       localStorage.setItem("anluvia_equipo_users", JSON.stringify(usuariosBaseIniciales));
@@ -135,7 +121,6 @@ export default function AdminDashboard() {
   };
 
   const cargarDatos = async () => {
-    setLoading(true);
     try {
       const { data: resData } = await supabase.from("reservas").select("*").order("created_at", { ascending: false });
       if (resData) setReservas(resData);
@@ -148,16 +133,8 @@ export default function AdminDashboard() {
 
       const localVentas = localStorage.getItem("anluvia_ventas");
       if (localVentas) setVentas(JSON.parse(localVentas));
-
-      const localCampanas = localStorage.getItem("anluvia_campanas");
-      if (localCampanas) setCampanas(JSON.parse(localCampanas));
-
-      const localBlogs = localStorage.getItem("anluvia_blogs");
-      if (localBlogs) setBlogs(JSON.parse(localBlogs));
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -213,7 +190,6 @@ export default function AdminDashboard() {
 
   const guardarEvolucion = async (e: React.FormEvent) => {
     e.preventDefault();
-    setGuardandoEvolucion(true);
     try {
       const { error } = await supabase.from("evoluciones").insert([
         {
@@ -240,8 +216,6 @@ export default function AdminDashboard() {
       }
     } catch {
       setMensajeFicha("⚠️ Error al guardar.");
-    } finally {
-      setGuardandoEvolucion(false);
     }
   };
 
@@ -272,7 +246,6 @@ export default function AdminDashboard() {
     window.print();
   };
 
-  const totalCitas = reservas.length;
   const pacientesUnicos = Array.from(new Set(reservas.map((r) => r.paciente_email))).map((email) => {
     const reserva = reservas.find((r) => r.paciente_email === email);
     return { email, nombre: reserva?.paciente_nombre || "Paciente ANLUVIA" };
@@ -421,15 +394,15 @@ export default function AdminDashboard() {
                     <input type="text" placeholder="Ej. Dra. Camila Morales" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid #ccc" }} required />
                   </div>
                   <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight 600, color: "#666" }}>Email</label>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666" }}>Email</label>
                     <input type="email" placeholder="camila@anluvia.cl" value={nuevoEmail} onChange={(e) => setNuevoEmail(e.target.value)} style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid #ccc" }} />
                   </div>
                   <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight 600, color: "#666" }}>Clave Privada *</label>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666" }}>Clave Privada *</label>
                     <input type="text" placeholder="Ej. camila2026" value={nuevaClave} onChange={(e) => setNuevaClave(e.target.value)} style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid #ccc" }} required />
                   </div>
                   <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight 600, color: "#666", marginBottom: "0.5rem" }}>Asignar Rol(es) *</label>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.5rem" }}>Asignar Rol(es) *</label>
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", backgroundColor: "#FBF9F6", padding: "0.85rem", borderRadius: "10px", border: "1px solid #E2E8F0" }}>
                       <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem" }}>
                         <input type="checkbox" checked={rolesSeleccionados.includes('especialista')} onChange={() => toggleRolCheck('especialista')} />
