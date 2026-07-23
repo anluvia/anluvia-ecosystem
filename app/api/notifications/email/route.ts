@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY || 're_P8findiS_CYFhvSFApyotKYGqjDRgiKeE');
-
 export async function POST(req: NextRequest) {
   try {
+    const apiKey = process.env.RESEND_API_KEY || 're_P8findiS_CYFhvSFApyotKYGqjDRgiKeE';
+    const resend = new Resend(apiKey);
+
     const { pacienteNombre, pacienteEmail, servicio, especialista, fecha, hora } = await req.json();
 
     if (!pacienteEmail) {
       return NextResponse.json({ error: 'Falta correo del paciente' }, { status: 400 });
     }
 
-    // 1. Plantilla de Confirmación para el Paciente
+    // Plantilla HTML Paciente
     const htmlPaciente = `
       <div style="font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #FBF9F6; padding: 40px 20px; color: #1F1F1F;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 20px; padding: 40px; border: 1px solid #A7B7A5;">
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
       </div>
     `;
 
-    // 2. Plantilla de Notificación Interna para ANLUVIA (contacto@anluvia.cl)
+    // Plantilla HTML Clínica
     const htmlClinica = `
       <div style="font-family: Arial, sans-serif; background-color: #F4EEE8; padding: 30px 20px;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 16px; padding: 30px; border-left: 6px solid #8B2434;">
@@ -71,13 +72,13 @@ export async function POST(req: NextRequest) {
             <p style="margin: 5px 0;"><strong>📅 Fecha & Hora:</strong> ${fecha} a las ${hora} hrs</p>
           </div>
 
-          <p style="font-size: 13px; color: #666;">Puedes revisar y gestionar esta cita directamente en tu <a href="https://anluvia-ecosystem.vercel.app/admin" style="color: #7D8E7C; font-weight: bold;">Panel Administrativo</a>.</p>
+          <p style="font-size: 13px; color: #666;">Gestionar en el <a href="https://anluvia-ecosystem.vercel.app/admin" style="color: #7D8E7C; font-weight: bold;">Panel Administrativo</a>.</p>
         </div>
       </div>
     `;
 
-    // Enviar correo al Paciente
-    await resend.emails.send({
+    // 1. Enviar al Paciente
+    const resPaciente = await resend.emails.send({
       from: 'ANLUVIA Clinique <contacto@anluvia.cl>',
       replyTo: 'contacto@anluvia.cl',
       to: [pacienteEmail],
@@ -85,17 +86,29 @@ export async function POST(req: NextRequest) {
       html: htmlPaciente,
     });
 
-    // Enviar notificación interna a la clínica
-    await resend.emails.send({
+    // 2. Enviar a la Clínica (contacto@anluvia.cl)
+    const resClinica = await resend.emails.send({
       from: 'ANLUVIA Sistema <contacto@anluvia.cl>',
       to: ['contacto@anluvia.cl'],
       subject: `🚨 [NUEVA CITA] ${pacienteNombre} - ${servicio} (${fecha} ${hora} hrs)`,
       html: htmlClinica,
     });
 
-    return NextResponse.json({ success: true });
+    console.log('Resend Paciente:', resPaciente);
+    console.log('Resend Clinica:', resClinica);
+
+    if (resPaciente.error || resClinica.error) {
+      return NextResponse.json({
+        success: false,
+        errorPaciente: resPaciente.error,
+        errorClinica: resClinica.error
+      }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true, resPaciente, resClinica });
+
   } catch (error: any) {
-    console.error('Error al enviar correo:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Error servidor email:', error);
+    return NextResponse.json({ error: error.message || 'Error en servidor' }, { status: 500 });
   }
 }
