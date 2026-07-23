@@ -6,7 +6,6 @@ import { supabase } from "../../lib/supabase";
 export default function ReservarPage() {
   const [step, setStep] = useState(1);
   const [servicio, setServicio] = useState('');
-  const [precioNumerico, setPrecioNumerico] = useState(45000);
   const [profesional, setProfesional] = useState('');
   const [fecha, setFecha] = useState('');
   const [hora, setHora] = useState('');
@@ -16,10 +15,10 @@ export default function ReservarPage() {
   const [mensaje, setMensaje] = useState('');
 
   const servicios = [
-    { id: 'kine', nombre: 'Kinesiología & Recuperación Física', duracion: '60 min', precio: '$45.000', valor: 45000 },
-    { id: 'facial', nombre: 'Estética Facial Premium & Armonización', duracion: '45 min', precio: '$55.000', valor: 55000 },
-    { id: 'corporal', nombre: 'Remodelación Corporal & Drenaje', duracion: '60 min', precio: '$50.000', valor: 50000 },
-    { id: 'bienestar', nombre: 'Masoterapia & Bienestar Integral', duracion: '75 min', precio: '$40.000', valor: 40000 },
+    { id: 'kine', nombre: 'Kinesiología & Recuperación Física', duracion: '60 min', precio: '$45.000' },
+    { id: 'facial', nombre: 'Estética Facial Premium & Armonización', duracion: '45 min', precio: '$55.000' },
+    { id: 'corporal', nombre: 'Remodelación Corporal & Drenaje', duracion: '60 min', precio: '$50.000' },
+    { id: 'bienestar', nombre: 'Masoterapia & Bienestar Integral', duracion: '75 min', precio: '$40.000' },
   ];
 
   const profesionales = [
@@ -89,18 +88,13 @@ export default function ReservarPage() {
     }
   `;
 
-  const seleccionarServicio = (s: any) => {
-    setServicio(s.nombre);
-    setPrecioNumerico(s.valor);
-  };
-
-  const procesarReservaYPago = async () => {
+  const guardarReserva = async () => {
     setLoading(true);
     setMensaje('');
 
     try {
-      // 1. Guardar la cita en Supabase
-      const { error: dbError } = await supabase.from('reservas').insert([
+      // 1. Guardar en Supabase
+      const { error } = await supabase.from('reservas').insert([
         {
           servicio,
           especialista: profesional,
@@ -108,42 +102,35 @@ export default function ReservarPage() {
           hora,
           paciente_nombre: nombre,
           paciente_email: email,
-          estado: 'Pendiente de Pago'
+          estado: 'Confirmada'
         }
       ]);
 
-      if (dbError) {
-        console.error("Error BD:", dbError);
-      }
+      if (error) throw error;
 
-      // 2. Generar checkout en Mercado Pago
-      setMensaje("💳 Generando enlace de pago seguro...");
-      const res = await fetch('/api/checkout', {
+      // 2. Enviar Notificación por Email
+      setMensaje("✉️ Enviando confirmación a tu correo...");
+      await fetch('/api/notifications/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: `Reserva ANLUVIA: ${servicio}`,
-          price: precioNumerico,
-          id: `reserva-${Date.now()}`
+          pacienteNombre: nombre,
+          pacienteEmail: email,
+          servicio,
+          especialista: profesional,
+          fecha,
+          hora
         })
       });
 
-      const data = await res.json();
-
-      if (data.init_point) {
-        window.location.href = data.init_point;
-      } else {
-        setMensaje("🎉 Cita agendada. Redirigiendo a tu portal...");
-        setTimeout(() => {
-          window.location.href = "/portal";
-        }, 1500);
-      }
-    } catch (err: any) {
-      console.error(err);
-      setMensaje("⚠️ Cita guardada. Redirigiendo al portal...");
+      setMensaje("🎉 ¡Reserva confirmada! Te hemos enviado un correo de respaldo.");
       setTimeout(() => {
         window.location.href = "/portal";
       }, 1500);
+
+    } catch (err: any) {
+      console.error(err);
+      setMensaje("⚠️ " + (err.message || "Error al procesar la cita."));
     } finally {
       setLoading(false);
     }
@@ -160,9 +147,7 @@ export default function ReservarPage() {
             Reserva Online
           </span>
         </a>
-        <a href="/" style={{ textDecoration: "none", color: "#666666", fontSize: "0.9rem" }}>
-          ✕ Cancelar
-        </a>
+        <a href="/" style={{ textDecoration: "none", color: "#666666", fontSize: "0.9rem" }}>✕ Cancelar</a>
       </header>
 
       <div style={{ backgroundColor: "#F4EEE8", padding: "1rem 2rem", display: "flex", justifyContent: "center", gap: "2rem", fontSize: "0.85rem", fontWeight: 600, color: "#666" }}>
@@ -172,7 +157,7 @@ export default function ReservarPage() {
         <span>→</span>
         <span style={{ color: step >= 3 ? "#7D8E7C" : "#999" }}>3. Datos & Fecha</span>
         <span>→</span>
-        <span style={{ color: step >= 4 ? "#8B2434" : "#999" }}>4. Pago & Confirmación</span>
+        <span style={{ color: step >= 4 ? "#8B2434" : "#999" }}>4. Confirmación</span>
       </div>
 
       <main style={{ flex: 1, maxWidth: "800px", margin: "0 auto", padding: "3rem 1.5rem", width: "100%" }}>
@@ -187,7 +172,7 @@ export default function ReservarPage() {
                 <div
                   key={s.id}
                   className={`card-option ${servicio === s.nombre ? 'card-selected' : ''}`}
-                  onClick={() => seleccionarServicio(s)}
+                  onClick={() => setServicio(s.nombre)}
                   style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
                 >
                   <div>
@@ -312,7 +297,7 @@ export default function ReservarPage() {
                 onClick={() => setStep(4)}
                 style={{ opacity: (fecha && hora && nombre && email) ? 1 : 0.5 }}
               >
-                Siguiente: Confirmar & Pagar →
+                Siguiente: Resumen →
               </button>
             </div>
           </div>
@@ -320,9 +305,9 @@ export default function ReservarPage() {
 
         {step === 4 && (
           <div style={{ textAlign: "center" }}>
-            <span style={{ fontSize: "3rem" }}>💳</span>
-            <h1 className="playfair" style={{ fontSize: "2.25rem", marginTop: "1rem" }}>Resumen y Pago Seguro</h1>
-            <p style={{ color: "#666", marginBottom: "2rem" }}>Serás redirigido a Mercado Pago para abonar y confirmar tu atención.</p>
+            <span style={{ fontSize: "3rem" }}>✉️</span>
+            <h1 className="playfair" style={{ fontSize: "2.25rem", marginTop: "1rem" }}>¡Confirmar Reserva!</h1>
+            <p style={{ color: "#666", marginBottom: "2rem" }}>Te enviaremos un correo con el comprobante de tu cita al confirmar.</p>
 
             <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #A7B7A5", borderRadius: "20px", padding: "2rem", textAlign: "left", marginBottom: "2rem", boxShadow: "0 10px 30px -10px rgba(0,0,0,0.05)" }}>
               <div style={{ borderBottom: "1px solid #F4EEE8", paddingBottom: "1rem", marginBottom: "1rem" }}>
@@ -334,11 +319,8 @@ export default function ReservarPage() {
                 <div style={{ fontSize: "1.2rem", fontWeight: 600, color: "#1F1F1F" }}>{servicio}</div>
               </div>
               <div>
-                <span style={{ fontSize: "0.8rem", color: "#666", fontWeight: 600, letterSpacing: "0.1em" }}>FECHA Y TOTAL A PAGAR</span>
+                <span style={{ fontSize: "0.8rem", color: "#666", fontWeight: 600, letterSpacing: "0.1em" }}>FECHA Y HORA</span>
                 <div style={{ fontSize: "1.1rem", fontWeight: 600, color: "#1F1F1F" }}>{fecha} a las {hora} hrs con {profesional}</div>
-                <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#8B2434", marginTop: "0.5rem" }}>
-                  ${precioNumerico.toLocaleString('es-CL')} CLP
-                </div>
               </div>
             </div>
 
@@ -349,12 +331,12 @@ export default function ReservarPage() {
             )}
 
             <button
-              onClick={procesarReservaYPago}
+              onClick={guardarReserva}
               disabled={loading}
               className="btn-salvia"
-              style={{ width: "100%", fontSize: "1.05rem", padding: "1rem" }}
+              style={{ width: "100%", fontSize: "1rem" }}
             >
-              {loading ? "Procesando..." : "🔒 Pagar Reserva con Mercado Pago"}
+              {loading ? "Confirmando y Enviando Email..." : "Confirmar Cita e Ingresar"}
             </button>
           </div>
         )}
