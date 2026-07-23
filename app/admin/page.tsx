@@ -9,13 +9,14 @@ export default function AdminDashboard() {
   const [reservas, setReservas] = useState<any[]>([]);
   const [evoluciones, setEvoluciones] = useState<any[]>([]);
   const [gastos, setGastos] = useState<any[]>([]);
+  const [ventas, setVentas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Estados de Prueba SII
+  // Estados SII / Ventas
   const [loadingSii, setLoadingSii] = useState(false);
   const [resultadoSii, setResultadoSii] = useState<any>(null);
 
-  // Formulario de Evolucion Kinesica
+  // Formulario de Evolución Kinésica
   const [selectedPacienteEmail, setSelectedPacienteEmail] = useState('');
   const [selectedPacienteNombre, setSelectedPacienteNombre] = useState('');
   const [especialista, setEspecialista] = useState('Dr. Matías Arancibia');
@@ -36,7 +37,6 @@ export default function AdminDashboard() {
   const [guardandoGasto, setGuardandoGasto] = useState(false);
   const [mensajeGasto, setMensajeGasto] = useState('');
 
-  // Tabla de Precios Estimados por Tratamiento
   const preciosServicios: { [key: string]: number } = {
     'Kinesiología & Recuperación Física': 45000,
     'Estética Facial Premium & Armonización': 55000,
@@ -178,13 +178,13 @@ export default function AdminDashboard() {
       const { data: evoData } = await supabase.from('evoluciones').select('*').order('created_at', { ascending: false });
       if (evoData) setEvoluciones(evoData);
 
-      const { data: gastosData, error: gastosErr } = await supabase.from('gastos').select('*').order('fecha', { ascending: false });
-      if (gastosData && !gastosErr) {
-        setGastos(gastosData);
-      } else {
-        const localGastos = localStorage.getItem('anluvia_gastos');
-        if (localGastos) setGastos(JSON.parse(localGastos));
-      }
+      // Cargar Compras / Gastos
+      const localGastos = localStorage.getItem('anluvia_gastos');
+      if (localGastos) setGastos(JSON.parse(localGastos));
+
+      // Cargar Ventas / DTEs
+      const localVentas = localStorage.getItem('anluvia_ventas');
+      if (localVentas) setVentas(JSON.parse(localVentas));
     } catch (err) {
       console.error(err);
     } finally {
@@ -201,23 +201,39 @@ export default function AdminDashboard() {
     setNumSesion(evolucionesPaciente.length + 1);
   };
 
-  const probarBoletaModal = async () => {
+  const emitirBoletaPrueba = async () => {
     setLoadingSii(true);
     setResultadoSii(null);
 
     const res = await emitirBoletaSII({
-      pacienteNombre: "Valentina Silva (Prueba)",
-      pacienteEmail: "contacto@anluvia.cl",
+      pacienteNombre: "Valentina Silva",
+      pacienteEmail: "paciente@anluvia.cl",
       montoTotal: 45000,
       glosaServicio: "Kinesiología & Recuperación Física - ANLUVIA",
       exento: true
     });
 
+    if (res.success) {
+      const nuevaVenta = {
+        id: Date.now().toString(),
+        tipo: 'Boleta Exenta',
+        folio: res.folio,
+        cliente: 'Valentina Silva',
+        email: 'paciente@anluvia.cl',
+        monto: 45000,
+        fecha: new Date().toISOString().split('T')[0],
+        estado: 'Emitida SII'
+      };
+      const actualizadas = [nuevaVenta, ...ventas];
+      setVentas(actualizadas);
+      localStorage.setItem('anluvia_ventas', JSON.stringify(actualizadas));
+    }
+
     setResultadoSii(res);
     setLoadingSii(false);
   };
 
-  const probarFacturaModal = async () => {
+  const emitirFacturaPrueba = async () => {
     setLoadingSii(true);
     setResultadoSii(null);
 
@@ -232,6 +248,22 @@ export default function AdminDashboard() {
       glosaServicio: "Convenio Kinesiología Preventiva ANLUVIA",
       exento: true
     });
+
+    if (res.success) {
+      const nuevaVenta = {
+        id: Date.now().toString(),
+        tipo: 'Factura Exenta',
+        folio: res.folio,
+        cliente: 'Inversiones & Salud SpA (76.987.654-3)',
+        email: 'finanzas@empresa.cl',
+        monto: 100000,
+        fecha: new Date().toISOString().split('T')[0],
+        estado: 'Emitida SII'
+      };
+      const actualizadas = [nuevaVenta, ...ventas];
+      setVentas(actualizadas);
+      localStorage.setItem('anluvia_ventas', JSON.stringify(actualizadas));
+    }
 
     setResultadoSii(res);
     setLoadingSii(false);
@@ -291,21 +323,14 @@ export default function AdminDashboard() {
       created_at: new Date().toISOString()
     };
 
-    try {
-      await supabase.from('gastos').insert([nuevoGasto]);
-      const nuevosGastos = [nuevoGasto, ...gastos];
-      setGastos(nuevosGastos);
-      localStorage.setItem('anluvia_gastos', JSON.stringify(nuevosGastos));
+    const nuevosGastos = [nuevoGasto, ...gastos];
+    setGastos(nuevosGastos);
+    localStorage.setItem('anluvia_gastos', JSON.stringify(nuevosGastos));
 
-      setMensajeGasto('✅ Gasto registrado correctamente.');
-      setGastoConcepto('');
-      setGastoMonto('');
-    } catch (err) {
-      console.error(err);
-      setMensajeGasto('✅ Gasto guardado localmente.');
-    } finally {
-      setGuardandoGasto(false);
-    }
+    setMensajeGasto('✅ Gasto/Compra registrada correctamente.');
+    setGastoConcepto('');
+    setGastoMonto('');
+    setGuardandoGasto(false);
   };
 
   const eliminarGasto = (id: string) => {
@@ -330,15 +355,14 @@ export default function AdminDashboard() {
   });
   const totalPacientes = pacientesUnicos.length;
 
-  const ingresosTotales = reservas.reduce((acc, r) => {
+  const ingresosBrutos = reservas.reduce((acc, r) => {
     const precio = preciosServicios[r.servicio] || 45000;
     return acc + precio;
   }, 0);
 
   const egresosTotales = gastos.reduce((acc, g) => acc + Number(g.monto || 0), 0);
-  const gananciaNeta = ingresosTotales - egresosTotales;
-  const margenRentabilidad = ingresosTotales > 0 ? Math.round((gananciaNeta / ingresosTotales) * 100) : 0;
-  const ticketPromedio = totalCitas > 0 ? Math.round(ingresosTotales / totalCitas) : 0;
+  const gananciaNeta = ingresosBrutos - egresosTotales;
+  const margenRentabilidad = ingresosBrutos > 0 ? Math.round((gananciaNeta / ingresosBrutos) * 100) : 0;
 
   const serviciosConteo: { [key: string]: number } = {};
   reservas.forEach(r => {
@@ -365,8 +389,11 @@ export default function AdminDashboard() {
             <div className={`sidebar-item ${activeTab === 'dashboard' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('dashboard')}>
               📊 Dashboard & Métricas
             </div>
-            <div className={`sidebar-item ${activeTab === 'finanzas' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('finanzas')}>
-              💸 Finanzas & Facturación SII
+            <div className={`sidebar-item ${activeTab === 'ventas' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('ventas')}>
+              📈 Ventas & Facturación SII
+            </div>
+            <div className={`sidebar-item ${activeTab === 'compras' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('compras')}>
+              📉 Compras & Gastos
             </div>
             <div className={`sidebar-item ${activeTab === 'agenda' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('agenda')}>
               📅 Agenda & Citas ({reservas.length})
@@ -402,21 +429,21 @@ export default function AdminDashboard() {
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", marginBottom: "2.5rem" }}>
               <div className="kpi-card">
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#7D8E7C", letterSpacing: "0.1em", textTransform: "uppercase" }}>Ingresos Brutos</span>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#7D8E7C", letterSpacing: "0.1em", textTransform: "uppercase" }}>Ventas / Ingresos Brutos</span>
                 <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.3rem" }}>
-                  ${ingresosTotales.toLocaleString('es-CL')} <span style={{ fontSize: "0.8rem", color: "#666" }}>CLP</span>
+                  ${ingresosBrutos.toLocaleString('es-CL')} <span style={{ fontSize: "0.8rem", color: "#666" }}>CLP</span>
                 </div>
               </div>
 
               <div className="kpi-card">
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#8B2434", letterSpacing: "0.1em", textTransform: "uppercase" }}>Egresos / Gastos</span>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#8B2434", letterSpacing: "0.1em", textTransform: "uppercase" }}>Compras / Gastos</span>
                 <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#8B2434", marginTop: "0.3rem" }}>
                   ${egresosTotales.toLocaleString('es-CL')} <span style={{ fontSize: "0.8rem", color: "#666" }}>CLP</span>
                 </div>
               </div>
 
               <div className="kpi-card">
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#137333", letterSpacing: "0.1em", textTransform: "uppercase" }}>Ganancia Neta</span>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#137333", letterSpacing: "0.1em", textTransform: "uppercase" }}>Ganancia Neta Real</span>
                 <div style={{ fontSize: "1.8rem", fontWeight: 700, color: gananciaNeta >= 0 ? "#137333" : "#D93025", marginTop: "0.3rem" }}>
                   ${gananciaNeta.toLocaleString('es-CL')} <span style={{ fontSize: "0.8rem", color: "#666" }}>CLP</span>
                 </div>
@@ -461,30 +488,30 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* PESTAÑA 2: FINANZAS & PRUEBAS SII */}
-        {activeTab === 'finanzas' && (
+        {/* PESTAÑA 2: VENTAS & FACTURACIÓN SII */}
+        {activeTab === 'ventas' && (
           <div className="no-print">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
               <div>
-                <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#8B2434", letterSpacing: "0.1em" }}>FINANZAS & EMISIÓN DTE</span>
-                <h1 className="playfair" style={{ fontSize: "2.25rem", margin: "0.25rem 0 0 0" }}>Control Financiero & Módulo SII</h1>
+                <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#8B2434", letterSpacing: "0.1em" }}>INGRESOS & DOCUMENTOS TRIBUTARIOS</span>
+                <h1 className="playfair" style={{ fontSize: "2.25rem", margin: "0.25rem 0 0 0" }}>Ventas & Facturación SII</h1>
               </div>
             </div>
 
-            {/* SECCIÓN DE PRUEBAS DEL MOTOR SII */}
+            {/* SECCIÓN DE EMISIÓN DE PRUEBA DTE */}
             <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "2px solid #8B2434", padding: "2rem", marginBottom: "2rem", boxShadow: "0 10px 30px -10px rgba(139, 36, 52, 0.1)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
                 <div>
                   <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#8B2434", letterSpacing: "0.1em", textTransform: "uppercase" }}>MODO SIMULACIÓN / SANDBOX EN VIVO</span>
-                  <h3 className="playfair" style={{ fontSize: "1.4rem", margin: "0.2rem 0 0 0" }}>🧪 Probador de Documentos Tributarios SII</h3>
+                  <h3 className="playfair" style={{ fontSize: "1.4rem", margin: "0.2rem 0 0 0" }}>🧾 Emisión Rápida de Boleta / Factura SII</h3>
                 </div>
 
                 <div style={{ display: "flex", gap: "1rem" }}>
-                  <button onClick={probarBoletaModal} disabled={loadingSii} className="btn-salvia">
-                    {loadingSii ? "Procesando..." : "🧾 Probar Boleta SII"}
+                  <button onClick={emitirBoletaPrueba} disabled={loadingSii} className="btn-salvia">
+                    {loadingSii ? "Procesando..." : "🧾 Emitir Boleta Exenta"}
                   </button>
-                  <button onClick={probarFacturaModal} disabled={loadingSii} className="btn-pdf">
-                    {loadingSii ? "Procesando..." : "📑 Probar Factura SII"}
+                  <button onClick={emitirFacturaPrueba} disabled={loadingSii} className="btn-pdf">
+                    {loadingSii ? "Procesando..." : "📑 Emitir Factura Exenta"}
                   </button>
                 </div>
               </div>
@@ -501,11 +528,68 @@ export default function AdminDashboard() {
               )}
             </div>
 
+            {/* TABLA HISTORIAL DE VENTAS Y DTES */}
+            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
+              <h3 className="playfair" style={{ fontSize: "1.3rem", marginTop: 0, color: "#1F1F1F", marginBottom: "1.5rem" }}>
+                Historial de Boletas y Facturas Emitidas ({ventas.length})
+              </h3>
+
+              {ventas.length > 0 ? (
+                <table className="table-admin">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Tipo Documento</th>
+                      <th>Folio SII</th>
+                      <th>Cliente / Receptor</th>
+                      <th>Monto Total ($)</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ventas.map((v) => (
+                      <tr key={v.id}>
+                        <td>{v.fecha}</td>
+                        <td><strong>{v.tipo}</strong></td>
+                        <td><span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#8B2434" }}>#{v.folio}</span></td>
+                        <td>
+                          <div style={{ fontWeight: 600 }}>{v.cliente}</div>
+                          <div style={{ fontSize: "0.8rem", color: "#666" }}>{v.email}</div>
+                        </td>
+                        <td style={{ fontWeight: 700, color: "#137333" }}>${v.monto.toLocaleString('es-CL')} CLP</td>
+                        <td>
+                          <span style={{ backgroundColor: "#E6F4EA", color: "#137333", padding: "0.25rem 0.75rem", borderRadius: "9999px", fontSize: "0.75rem", fontWeight: 700 }}>
+                            {v.estado}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p style={{ color: "#666", textAlign: "center", padding: "2rem 0" }}>
+                  Aún no has registrado ventas o DTEs emitidos. Utiliza los botones superiores para probar la generación de boletas/facturas.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* PESTAÑA 3: COMPRAS & GASTOS */}
+        {activeTab === 'compras' && (
+          <div className="no-print">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+              <div>
+                <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#8B2434", letterSpacing: "0.1em" }}>EGRESOS & FACTURAS DE PROVEEDORES</span>
+                <h1 className="playfair" style={{ fontSize: "2.25rem", margin: "0.25rem 0 0 0" }}>Compras & Gastos Operativos</h1>
+              </div>
+            </div>
+
             <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "2rem" }}>
-              {/* Formulario para Agregar Gasto */}
+              {/* Formulario para Agregar Gasto / Compra */}
               <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
                 <h3 className="playfair" style={{ fontSize: "1.3rem", marginTop: 0, color: "#8B2434" }}>
-                  + Registrar Nuevo Gasto / Compra
+                  + Registrar Nueva Compra / Gasto
                 </h3>
 
                 {mensajeGasto && (
@@ -517,14 +601,14 @@ export default function AdminDashboard() {
                 <form onSubmit={guardarGasto} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                   <div>
                     <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
-                      Concepto / Detalle de la Compra *
+                      Concepto / Proveedor de la Compra *
                     </label>
-                    <input type="text" placeholder="Ej. Insumos kinesiológicos, cremas..." value={gastoConcepto} onChange={(e) => setGastoConcepto(e.target.value)} className="input-anluvia" required />
+                    <input type="text" placeholder="Ej. Factura N° 4512 - Insumos Médicos..." value={gastoConcepto} onChange={(e) => setGastoConcepto(e.target.value)} className="input-anluvia" required />
                   </div>
 
                   <div>
                     <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
-                      Categoría *
+                      Categoría del Egreso *
                     </label>
                     <select value={gastoCategoria} onChange={(e) => setGastoCategoria(e.target.value)} className="input-anluvia">
                       <option value="Insumos Médicos">Insumos Médicos & Estética</option>
@@ -538,32 +622,32 @@ export default function AdminDashboard() {
 
                   <div>
                     <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
-                      Monto en CLP ($) *
+                      Monto Total en CLP ($) *
                     </label>
                     <input type="number" placeholder="Ej. 120000" value={gastoMonto} onChange={(e) => setGastoMonto(e.target.value)} className="input-anluvia" required />
                   </div>
 
                   <div>
                     <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
-                      Fecha del Gasto *
+                      Fecha de la Compra *
                     </label>
                     <input type="date" value={gastoFecha} onChange={(e) => setGastoFecha(e.target.value)} className="input-anluvia" required />
                   </div>
 
                   <button type="submit" disabled={guardandoGasto} className="btn-salvia" style={{ width: "100%", padding: "0.85rem", marginTop: "0.5rem" }}>
-                    {guardandoGasto ? "Guardando..." : "💵 Guardar Registro de Gasto"}
+                    {guardandoGasto ? "Guardando..." : "💵 Guardar Registro de Compra"}
                   </button>
                 </form>
               </div>
 
-              {/* Lista e Historial de Gastos */}
+              {/* Historial de Compras */}
               <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
                   <h3 className="playfair" style={{ fontSize: "1.3rem", margin: 0, color: "#1F1F1F" }}>
-                    Historial de Gastos ({gastos.length})
+                    Historial de Compras ({gastos.length})
                   </h3>
                   <div style={{ fontSize: "0.9rem", fontWeight: 700, color: "#8B2434" }}>
-                    Total: ${egresosTotales.toLocaleString('es-CL')} CLP
+                    Total Egresos: ${egresosTotales.toLocaleString('es-CL')} CLP
                   </div>
                 </div>
 
@@ -572,7 +656,7 @@ export default function AdminDashboard() {
                     <thead>
                       <tr>
                         <th>Fecha</th>
-                        <th>Concepto</th>
+                        <th>Concepto / Proveedor</th>
                         <th>Categoría</th>
                         <th>Monto ($)</th>
                         <th>Acción</th>
@@ -596,7 +680,7 @@ export default function AdminDashboard() {
                   </table>
                 ) : (
                   <p style={{ color: "#666", textAlign: "center", padding: "2rem 0" }}>
-                    Aún no has registrado compras o gastos. Utiliza el formulario lateral para agregar el primer egreso.
+                    Aún no has registrado compras o gastos. Utiliza el formulario lateral para ingresar la primera factura de compra.
                   </p>
                 )}
               </div>
@@ -604,7 +688,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* PESTAÑA 3: AGENDA */}
+        {/* PESTAÑA 4: AGENDA DE ATENCIÓN */}
         {activeTab === 'agenda' && (
           <div className="no-print">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
@@ -657,7 +741,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* PESTAÑA 4: FICHAS */}
+        {/* PESTAÑA 5: FICHAS & EVOLUCIÓN KINÉSICA */}
         {activeTab === 'fichas' && (
           <div>
             <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
