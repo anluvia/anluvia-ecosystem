@@ -1,86 +1,88 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from "react";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("agenda");
 
+  const adminCss = `
+    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap");
+    .playfair { font-family: "Playfair Display", serif; }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      padding: 0.85rem 1.25rem;
+      border-radius: 12px;
+      color: #666;
+      font-weight: 500;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    .sidebar-item:hover, .sidebar-active {
+      background-color: #F4EEE8;
+      color: #1F1F1F;
+      font-weight: 600;
+    }
+
+    .card-stat {
+      background-color: #FFFFFF;
+      border: 1px solid rgba(167, 183, 165, 0.3);
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 20px -5px rgba(31, 31, 31, 0.03);
+    }
+
+    .table-admin {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .table-admin th {
+      text-align: left;
+      padding: 1rem;
+      background-color: #F4EEE8;
+      color: #1F1F1F;
+      font-weight: 600;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .table-admin td {
+      padding: 1rem;
+      border-bottom: 1px solid #F4EEE8;
+      color: #4A4A4A;
+    }
+
+    .btn-salvia {
+      background-color: #7D8E7C;
+      color: #FFFFFF;
+      padding: 0.65rem 1.25rem;
+      border-radius: 9999px;
+      border: none;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .btn-salvia:hover {
+      background-color: #6a7b69;
+    }
+
+    .badge-status {
+      padding: 0.25rem 0.65rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+  `;
+
   return (
     <div style={{ backgroundColor: "#FBF9F6", color: "#1F1F1F", fontFamily: "Inter, sans-serif", minHeight: "100vh", display: "flex" }}>
-      <style>{`
-        @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap");
-        .playfair { fontFamily: "Playfair Display", serif; }
-
-        .sidebar-item {
-          display: flex;
-          align-items: center;
-          gap: 0.85rem;
-          padding: 0.85rem 1.25rem;
-          border-radius: 12px;
-          color: #666;
-          font-weight: 500;
-          font-size: 0.9rem;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          text-decoration: none;
-        }
-        .sidebar-item:hover, .sidebar-active {
-          background-color: #F4EEE8;
-          color: #1F1F1F;
-          font-weight: 600;
-        }
-
-        .card-stat {
-          background-color: #FFFFFF;
-          border: 1px solid rgba(167, 183, 165, 0.3);
-          border-radius: 16px;
-          padding: 1.5rem;
-          box-shadow: 0 4px 20px -5px rgba(31, 31, 31, 0.03);
-        }
-
-        .table-admin {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 0.9rem;
-        }
-        .table-admin th {
-          text-align: left;
-          padding: 1rem;
-          background-color: #F4EEE8;
-          color: #1F1F1F;
-          font-weight: 600;
-          font-size: 0.8rem;
-          letter-spacing: 0.05em;
-          text-transform: uppercase;
-        }
-        .table-admin td {
-          padding: 1rem;
-          border-bottom: 1px solid #F4EEE8;
-          color: #4A4A4A;
-        }
-
-        .btn-salvia {
-          background-color: #7D8E7C;
-          color: #FFFFFF;
-          padding: 0.65rem 1.25rem;
-          border-radius: 9999px;
-          border: none;
-          font-weight: 600;
-          font-size: 0.85rem;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-        .btn-salvia:hover {
-          background-color: #6a7b69;
-        }
-
-        .badge-status {
-          padding: 0.25rem 0.65rem;
-          border-radius: 9999px;
-          font-size: 0.75rem;
-          font-weight: 600;
-        }
-      `}</style>
+      <style dangerouslySetInnerHTML={{ __html: adminCss }} />
 
       {/* Sidebar Lateral */}
       <aside style={{ width: "260px", borderRight: "1px solid #F4EEE8", backgroundColor: "#FFFFFF", padding: "2rem 1.5rem", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
@@ -148,13 +150,13 @@ export default function AdminDashboard() {
 
           <div className="card-stat">
             <span style={{ fontSize: "0.8rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.05em" }}>Pacientes Nuevos</span>
-            <div className="playfair" style={{ fontSize: "2rem", fontWeight 700, color: "#8B2434", marginTop: "0.25rem" }}>42 Registros</div>
+            <div className="playfair" style={{ fontSize: "2rem", fontWeight: 700, color: "#8B2434", marginTop: "0.25rem" }}>42 Registros</div>
             <span style={{ fontSize: "0.8rem", color: "#666" }}>Últimos 30 días</span>
           </div>
 
           <div className="card-stat">
             <span style={{ fontSize: "0.8rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.05em" }}>Evaluación Promedio</span>
-            <div className="playfair" style={{ fontSize: "2rem", fontWeight 700, color: "#1F1F1F", marginTop: "0.25rem" }}>4.95 / 5.0</div>
+            <div className="playfair" style={{ fontSize: "2rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.25rem" }}>4.95 / 5.0</div>
             <span style={{ fontSize: "0.8rem", color: "#7D8E7C", fontWeight: 600 }}>★ ★ ★ ★ ★</span>
           </div>
         </div>

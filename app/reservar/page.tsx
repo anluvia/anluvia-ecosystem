@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from "react";
 import { supabase } from "../../lib/supabase";
@@ -28,6 +28,65 @@ export default function ReservarPage() {
   ];
 
   const horasDisponibles = ['09:00', '10:30', '12:00', '15:30', '17:00', '18:30'];
+
+  const reservarCss = `
+    @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap");
+    .playfair { font-family: "Playfair Display", serif; }
+
+    .card-option {
+      background-color: #FFFFFF;
+      border: 1px solid rgba(167, 183, 165, 0.3);
+      border-radius: 16px;
+      padding: 1.5rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .card-option:hover {
+      border-color: #7D8E7C;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -10px rgba(125, 142, 124, 0.2);
+    }
+    .card-selected {
+      border: 2px solid #7D8E7C !important;
+      background-color: #F4EEE8 !important;
+    }
+
+    .btn-salvia {
+      background-color: #7D8E7C;
+      color: #FFFFFF;
+      padding: 0.85rem 2rem;
+      border-radius: 9999px;
+      border: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .btn-salvia:hover {
+      background-color: #6a7b69;
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: #666;
+      border: 1px solid #ccc;
+      padding: 0.85rem 1.5rem;
+      border-radius: 9999px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .input-anluvia {
+      width: 100%;
+      padding: 0.8rem 1.2rem;
+      border-radius: 12px;
+      border: 1px solid #ccc;
+      font-size: 0.95rem;
+      outline: none;
+      box-sizing: border-box;
+      background-color: #FFF;
+    }
+  `;
 
   const guardarReserva = async () => {
     setLoading(true);
@@ -65,64 +124,7 @@ export default function ReservarPage() {
 
   return (
     <div style={{ backgroundColor: "#FBF9F6", color: "#1F1F1F", fontFamily: "Inter, sans-serif", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <style>{`
-        @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap");
-        .playfair { fontFamily: "Playfair Display", serif; }
-
-        .card-option {
-          background-color: #FFFFFF;
-          border: 1px solid rgba(167, 183, 165, 0.3);
-          border-radius: 16px;
-          padding: 1.5rem;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-        .card-option:hover {
-          border-color: #7D8E7C;
-          transform: translateY(-2px);
-          box-shadow: 0 10px 25px -10px rgba(125, 142, 124, 0.2);
-        }
-        .card-selected {
-          border: 2px solid #7D8E7C !important;
-          background-color: #F4EEE8 !important;
-        }
-
-        .btn-salvia {
-          background-color: #7D8E7C;
-          color: #FFFFFF;
-          padding: 0.85rem 2rem;
-          border-radius: 9999px;
-          border: none;
-          font-weight: 600;
-          font-size: 0.95rem;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-        .btn-salvia:hover {
-          background-color: #6a7b69;
-        }
-
-        .btn-outline {
-          background: transparent;
-          color: #666;
-          border: 1px solid #ccc;
-          padding: 0.85rem 1.5rem;
-          border-radius: 9999px;
-          font-weight: 500;
-          cursor: pointer;
-        }
-
-        .input-anluvia {
-          width: 100%;
-          padding: 0.8rem 1.2rem;
-          border-radius: 12px;
-          border: 1px solid #ccc;
-          font-size: 0.95rem;
-          outline: none;
-          box-sizing: border-box;
-          background-color: #FFF;
-        }
-      `}</style>
+      <style dangerouslySetInnerHTML={{ __html: reservarCss }} />
 
       <header style={{ padding: "1.25rem 3rem", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #F4EEE8" }}>
         <a href="/" style={{ textDecoration: "none", color: "#1F1F1F" }} className="playfair">
@@ -301,7 +303,7 @@ export default function ReservarPage() {
                 <div style={{ fontSize: "1.1rem", fontWeight: 600, color: "#1F1F1F" }}>{nombre} ({email})</div>
               </div>
               <div style={{ borderBottom: "1px solid #F4EEE8", paddingBottom: "1rem", marginBottom: "1rem" }}>
-                <span style={{ fontSize: "0.8rem", color: "#7D8E7C", fontWeight 600, letterSpacing: "0.1em" }}>TRATAMIENTO</span>
+                <span style={{ fontSize: "0.8rem", color: "#7D8E7C", fontWeight: 600, letterSpacing: "0.1em" }}>TRATAMIENTO</span>
                 <div style={{ fontSize: "1.2rem", fontWeight: 600, color: "#1F1F1F" }}>{servicio}</div>
               </div>
               <div>
