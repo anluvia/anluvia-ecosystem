@@ -6,8 +6,21 @@ import { supabase } from "../../lib/supabase";
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("agenda");
   const [reservas, setReservas] = useState<any[]>([]);
+  const [evoluciones, setEvoluciones] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actualizandoId, setActualizandoId] = useState<string | null>(null);
+
+  // Formulario de Evolucion Kinesica
+  const [selectedPacienteEmail, setSelectedPacienteEmail] = useState('');
+  const [selectedPacienteNombre, setSelectedPacienteNombre] = useState('');
+  const [especialista, setEspecialista] = useState('Dr. Matías Arancibia');
+  const [numSesion, setNumSesion] = useState(1);
+  const [evaDolor, setEvaDolor] = useState(5);
+  const [subjetivo, setSubjetivo] = useState('');
+  const [objetivo, setObjetivo] = useState('');
+  const [tratamiento, setTratamiento] = useState('');
+  const [indicaciones, setIndicaciones] = useState('');
+  const [guardandoEvolucion, setGuardandoEvolucion] = useState(false);
+  const [mensajeFicha, setMensajeFicha] = useState('');
 
   const adminCss = `
     @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap");
@@ -76,40 +89,41 @@ export default function AdminDashboard() {
       background-color: #6a7b69;
     }
 
-    .badge-status {
-      padding: 0.25rem 0.65rem;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      display: inline-block;
-    }
-
-    .select-status {
-      padding: 0.35rem 0.75rem;
-      border-radius: 8px;
-      border: 1px solid #A7B7A5;
+    .input-anluvia {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 0.9rem;
+      outline: none;
+      box-sizing: border-box;
       background-color: #FFF;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
+    }
+    .textarea-anluvia {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 0.9rem;
+      outline: none;
+      box-sizing: border-box;
+      min-height: 80px;
+      font-family: inherit;
     }
   `;
 
   useEffect(() => {
-    cargarReservas();
+    cargarDatos();
   }, []);
 
-  const cargarReservas = async () => {
+  const cargarDatos = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('reservas')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data: resData } = await supabase.from('reservas').select('*').order('created_at', { ascending: false });
+      if (resData) setReservas(resData);
 
-      if (!error && data) {
-        setReservas(data);
-      }
+      const { data: evoData } = await supabase.from('evoluciones').select('*').order('created_at', { ascending: false });
+      if (evoData) setEvoluciones(evoData);
     } catch (err) {
       console.error(err);
     } finally {
@@ -117,32 +131,61 @@ export default function AdminDashboard() {
     }
   };
 
-  const cambiarEstado = async (id: string, nuevoEstado: string) => {
-    setActualizandoId(id);
-    try {
-      const { error } = await supabase
-        .from('reservas')
-        .update({ estado: nuevoEstado })
-        .eq('id', id);
+  const seleccionarParaFicha = (pacienteEmail: string, pacienteNombre: string) => {
+    setSelectedPacienteEmail(pacienteEmail);
+    setSelectedPacienteNombre(pacienteNombre);
+    setActiveTab('fichas');
 
-      if (!error) {
-        setReservas((prev) =>
-          prev.map((r) => (r.id === id ? { ...r, estado: nuevoEstado } : r))
-        );
+    // Calcular proxima sesion
+    const evolucionesPaciente = evoluciones.filter(e => e.paciente_email === pacienteEmail);
+    setNumSesion(evolucionesPaciente.length + 1);
+  };
+
+  const guardarEvolucion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setGuardandoEvolucion(true);
+    setMensajeFicha('');
+
+    try {
+      const { error } = await supabase.from('evoluciones').insert([
+        {
+          paciente_email: selectedPacienteEmail,
+          paciente_nombre: selectedPacienteNombre,
+          especialista,
+          numero_sesion: numSesion,
+          eva_dolor: evaDolor,
+          subjetivo,
+          objetivo,
+          tratamiento,
+          indicaciones
+        }
+      ]);
+
+      if (error) {
+        setMensajeFicha('⚠️ ' + error.message);
       } else {
-        alert("⚠️ No se pudo actualizar el estado.");
+        setMensajeFicha('🎉 ¡Evolución registrada en la Ficha Médica!');
+        setSubjetivo('');
+        setObjetivo('');
+        setTratamiento('');
+        setIndicaciones('');
+        cargarDatos();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setMensajeFicha('⚠️ Error al guardar.');
     } finally {
-      setActualizandoId(null);
+      setGuardandoEvolucion(false);
     }
   };
 
-  const totalCitas = reservas.length;
-  const confirmadas = reservas.filter((r) => (r.estado || 'Confirmada') === 'Confirmada').length;
-  const enAtencion = reservas.filter((r) => r.estado === 'En Atención').length;
-  const completadas = reservas.filter((r) => r.estado === 'Completada').length;
+  const pacientesUnicos = Array.from(new Set(reservas.map(r => r.paciente_email))).map(email => {
+    const reserva = reservas.find(r => r.paciente_email === email);
+    return {
+      email,
+      nombre: reserva?.paciente_nombre || 'Paciente ANLUVIA'
+    };
+  });
 
   return (
     <div style={{ backgroundColor: "#FBF9F6", color: "#1F1F1F", fontFamily: "Inter, sans-serif", minHeight: "100vh", display: "flex" }}>
@@ -160,17 +203,17 @@ export default function AdminDashboard() {
 
           <nav style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
             <div className={`sidebar-item ${activeTab === 'agenda' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('agenda')}>
-              📅 Agenda & Citas
+              📅 Agenda & Citas ({reservas.length})
             </div>
-            <div className={`sidebar-item ${activeTab === 'pacientes' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('pacientes')}>
-              🩺 Pacientes ({totalCitas})
+            <div className={`sidebar-item ${activeTab === 'fichas' ? 'sidebar-active' : ''}`} onClick={() => setActiveTab('fichas')}>
+              🩺 Fichas & Evolución Kinésica
             </div>
           </nav>
         </div>
 
         <div style={{ borderTop: "1px solid #F4EEE8", paddingTop: "1.25rem" }}>
           <div style={{ fontWeight: 600, fontSize: "0.85rem" }}>Dr. Matías Arancibia</div>
-          <div style={{ fontSize: "0.75rem", color: "#666" }}>Director Médico — Sede Las Condes</div>
+          <div style={{ fontSize: "0.75rem", color: "#666" }}>Kinesiología & Estética</div>
           <a href="/" style={{ fontSize: "0.8rem", color: "#8B2434", display: "inline-block", marginTop: "0.75rem", textDecoration: "none", fontWeight: 600 }}>
             ← Salir al Sitio
           </a>
@@ -180,126 +223,209 @@ export default function AdminDashboard() {
       {/* Área Principal */}
       <main style={{ flex: 1, padding: "2.5rem 3rem", overflowY: "auto" }}>
         
-        {/* Top Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2.5rem" }}>
+        {/* Pestaña: Agenda */}
+        {activeTab === 'agenda' && (
           <div>
-            <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#7D8E7C", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-              BASE DE DATOS EN VIVO — SUPABASE
-            </span>
-            <h1 className="playfair" style={{ fontSize: "2.25rem", color: "#1F1F1F", margin: "0.25rem 0 0 0" }}>
-              Control de Operaciones
-            </h1>
-          </div>
-          <div style={{ display: "flex", gap: "1rem" }}>
-            <button onClick={cargarReservas} className="btn-salvia">
-              🔄 Actualizar Citas
-            </button>
-            <a href="/reservar" target="_blank" style={{ backgroundColor: "#F4EEE8", color: "#1F1F1F", padding: "0.65rem 1.25rem", borderRadius: "9999px", border: "1px solid #A7B7A5", fontWeight: 600, fontSize: "0.85rem", textDecoration: "none" }}>
-              + Probador de Citas ↗
-            </a>
-          </div>
-        </div>
-
-        {/* Stats Grid Reales */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1.5rem", marginBottom: "3rem" }}>
-          <div className="card-stat">
-            <span style={{ fontSize: "0.8rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.05em" }}>Total Reservas</span>
-            <div className="playfair" style={{ fontSize: "2rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.25rem" }}>
-              {totalCitas} Citas
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+              <div>
+                <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#7D8E7C", letterSpacing: "0.1em" }}>OPERACIONES EN VIVO</span>
+                <h1 className="playfair" style={{ fontSize: "2.25rem", margin: "0.25rem 0 0 0" }}>Agenda de Atención</h1>
+              </div>
+              <button onClick={cargarDatos} className="btn-salvia">🔄 Actualizar</button>
             </div>
-            <span style={{ fontSize: "0.8rem", color: "#7D8E7C", fontWeight: 600 }}>Registradas en sistema</span>
-          </div>
 
-          <div className="card-stat">
-            <span style={{ fontSize: "0.8rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.05em" }}>Confirmadas</span>
-            <div className="playfair" style={{ fontSize: "2rem", fontWeight: 700, color: "#7D8E7C", marginTop: "0.25rem" }}>
-              {confirmadas} Pacientes
+            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem", boxShadow: "0 10px 30px -10px rgba(0,0,0,0.03)" }}>
+              {loading ? (
+                <p>Cargando reservas...</p>
+              ) : (
+                <table className="table-admin">
+                  <thead>
+                    <tr>
+                      <th>Fecha & Hora</th>
+                      <th>Paciente</th>
+                      <th>Tratamiento</th>
+                      <th>Especialista</th>
+                      <th>Acción Clínica</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reservas.map((r) => (
+                      <tr key={r.id}>
+                        <td><strong>{r.fecha}</strong> ({r.hora} hrs)</td>
+                        <td>
+                          <div style={{ fontWeight: 600 }}>{r.paciente_nombre}</div>
+                          <div style={{ fontSize: "0.8rem", color: "#666" }}>{r.paciente_email}</div>
+                        </td>
+                        <td>{r.servicio}</td>
+                        <td>{r.especialista}</td>
+                        <td>
+                          <button
+                            onClick={() => seleccionarParaFicha(r.paciente_email, r.paciente_nombre)}
+                            className="btn-salvia"
+                            style={{ fontSize: "0.75rem", padding: "0.4rem 0.85rem" }}
+                          >
+                            🩺 Abrir Ficha Médica →
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
-            <span style={{ fontSize: "0.8rem", color: "#7D8E7C", fontWeight: 600 }}>Listos para atención</span>
           </div>
+        )}
 
-          <div className="card-stat">
-            <span style={{ fontSize: "0.8rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.05em" }}>En Atención</span>
-            <div className="playfair" style={{ fontSize: "2rem", fontWeight: 700, color: "#8B2434", marginTop: "0.25rem" }}>
-              {enAtencion} Pacientes
+        {/* Pestaña: Fichas & Evolucion Kinesica */}
+        {activeTab === 'fichas' && (
+          <div>
+            <div style={{ marginBottom: "2rem" }}>
+              <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#8B2434", letterSpacing: "0.1em" }}>REGISTRO CLÍNICO OFICIAL</span>
+              <h1 className="playfair" style={{ fontSize: "2.25rem", margin: "0.25rem 0 0 0" }}>Ficha Médica & Evolución SOAP</h1>
             </div>
-            <span style={{ fontSize: "0.8rem", color: "#8B2434", fontWeight: 600 }}>En consulta actual</span>
-          </div>
 
-          <div className="card-stat">
-            <span style={{ fontSize: "0.8rem", color: "#666", textTransform: "uppercase", letterSpacing: "0.05em" }}>Completadas</span>
-            <div className="playfair" style={{ fontSize: "2rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.25rem" }}>
-              {completadas} Atenciones
-            </div>
-            <span style={{ fontSize: "0.8rem", color: "#666" }}>Finalizadas con éxito</span>
-          </div>
-        </div>
-
-        {/* Tabla de Citas Reales */}
-        <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem", boxShadow: "0 10px 30px -10px rgba(0,0,0,0.03)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-            <h3 className="playfair" style={{ fontSize: "1.4rem", margin: 0 }}>Gestión de Reservas en Vivo</h3>
-            <span style={{ fontSize: "0.85rem", color: "#7D8E7C", fontWeight: 600 }}>Sede Las Condes</span>
-          </div>
-
-          {loading ? (
-            <div style={{ padding: "3rem", textAlign: "center", color: "#666" }}>Cargando datos desde Supabase...</div>
-          ) : reservas.length > 0 ? (
-            <table className="table-admin">
-              <thead>
-                <tr>
-                  <th>Fecha & Hora</th>
-                  <th>Paciente</th>
-                  <th>Tratamiento</th>
-                  <th>Especialista</th>
-                  <th>Estado Actual</th>
-                  <th>Cambiar Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reservas.map((r) => (
-                  <tr key={r.id}>
-                    <td style={{ fontWeight: 600 }}>
-                      <div>{r.fecha}</div>
-                      <div style={{ fontSize: "0.8rem", color: "#8B2434" }}>{r.hora} hrs</div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: "#1F1F1F" }}>{r.paciente_nombre || 'Paciente'}</div>
-                      <div style={{ fontSize: "0.8rem", color: "#666" }}>{r.paciente_email}</div>
-                    </td>
-                    <td style={{ fontWeight: 500 }}>{r.servicio}</td>
-                    <td>{r.especialista}</td>
-                    <td>
-                      <span className="badge-status" style={{
-                        backgroundColor: r.estado === 'En Atención' ? '#FEF7E0' : r.estado === 'Completada' ? '#E6F4EA' : r.estado === 'Cancelada' ? '#FCE8E6' : '#E6F4EA',
-                        color: r.estado === 'En Atención' ? '#B06000' : r.estado === 'Completada' ? '#137333' : r.estado === 'Cancelada' ? '#C5221F' : '#137333'
-                      }}>
-                        {r.estado || 'Confirmada'}
-                      </span>
-                    </td>
-                    <td>
-                      <select
-                        disabled={actualizandoId === r.id}
-                        value={r.estado || 'Confirmada'}
-                        onChange={(e) => cambiarEstado(r.id, e.target.value)}
-                        className="select-status"
-                      >
-                        <option value="Confirmada">Confirmada</option>
-                        <option value="En Atención">En Atención</option>
-                        <option value="Completada">Completada</option>
-                        <option value="Cancelada">Cancelada</option>
-                      </select>
-                    </td>
-                  </tr>
+            {/* Selector de Paciente */}
+            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "1.5rem", marginBottom: "2rem" }}>
+              <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#666", marginBottom: "0.5rem" }}>
+                Seleccionar Paciente para la Sesión:
+              </label>
+              <select
+                className="input-anluvia"
+                value={selectedPacienteEmail}
+                onChange={(e) => {
+                  const email = e.target.value;
+                  const p = pacientesUnicos.find(item => item.email === email);
+                  if (p) seleccionarParaFicha(p.email, p.nombre);
+                }}
+              >
+                <option value="">-- Selecciona un Paciente --</option>
+                {pacientesUnicos.map((p) => (
+                  <option key={p.email} value={p.email}>
+                    {p.nombre} ({p.email})
+                  </option>
                 ))}
-              </tbody>
-            </table>
-          ) : (
-            <div style={{ padding: "3rem", textAlign: "center", color: "#666" }}>
-              No se han registrado citas aún en la base de datos.
+              </select>
             </div>
-          )}
-        </div>
+
+            {selectedPacienteEmail ? (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem" }}>
+                
+                {/* Formulario Nueva Evolucion */}
+                <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
+                  <h3 className="playfair" style={{ fontSize: "1.3rem", marginTop: 0, color: "#8B2434" }}>
+                    + Registrar Nueva Evolución (Sesión #{numSesion})
+                  </h3>
+
+                  {mensajeFicha && (
+                    <div style={{ padding: "0.75rem", backgroundColor: "#F4EEE8", borderRadius: "10px", color: "#7D8E7C", fontWeight: 600, fontSize: "0.85rem", marginBottom: "1rem" }}>
+                      {mensajeFicha}
+                    </div>
+                  )}
+
+                  <form onSubmit={guardarEvolucion} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
+                        Escala de Dolor EVA (0 al 10): <strong>{evaDolor} / 10</strong>
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="10"
+                        value={evaDolor}
+                        onChange={(e) => setEvaDolor(Number(e.target.value))}
+                        style={{ width: "100%", accentColor: "#8B2434" }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
+                        Subjetivo (Relato del paciente):
+                      </label>
+                      <textarea
+                        placeholder="Ej. Refiere disminución del dolor articular tras última sesión..."
+                        value={subjetivo}
+                        onChange={(e) => setSubjetivo(e.target.value)}
+                        className="textarea-anluvia"
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
+                        Objetivo (Evaluación física):
+                      </label>
+                      <textarea
+                        placeholder="Ej. Rango de flexión recuperado a 110°. Sensibilidad normal..."
+                        value={objetivo}
+                        onChange={(e) => setObjetivo(e.target.value)}
+                        className="textarea-anluvia"
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
+                        Tratamiento Aplicado:
+                      </label>
+                      <textarea
+                        placeholder="Ej. Terapia manual, ultrasonido, reeducación motora..."
+                        value={tratamiento}
+                        onChange={(e) => setTratamiento(e.target.value)}
+                        className="textarea-anluvia"
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
+                        Indicaciones para el Hogar:
+                      </label>
+                      <textarea
+                        placeholder="Ej. Ejercicios de movilidad 2 veces al día. Crioterapia por 15 min..."
+                        value={indicaciones}
+                        onChange={(e) => setIndicaciones(e.target.value)}
+                        className="textarea-anluvia"
+                      />
+                    </div>
+
+                    <button type="submit" disabled={guardandoEvolucion} className="btn-salvia" style={{ width: "100%", padding: "0.85rem", marginTop: "0.5rem" }}>
+                      {guardandoEvolucion ? "Guardando..." : "💾 Guardar Evolución Kinésica"}
+                    </button>
+                  </form>
+                </div>
+
+                {/* Historial de Evoluciones del Paciente */}
+                <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
+                  <h3 className="playfair" style={{ fontSize: "1.3rem", marginTop: 0, color: "#7D8E7C" }}>
+                    Historial Clínico: {selectedPacienteNombre}
+                  </h3>
+
+                  {evoluciones.filter(e => e.paciente_email === selectedPacienteEmail).length > 0 ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxHeight: "600px", overflowY: "auto" }}>
+                      {evoluciones.filter(e => e.paciente_email === selectedPacienteEmail).map((evo) => (
+                        <div key={evo.id} style={{ border: "1px solid #F4EEE8", borderRadius: "12px", padding: "1.25rem", backgroundColor: "#FBF9F6" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+                            <span style={{ fontWeight: 700, color: "#8B2434" }}>Sesión #{evo.numero_sesion}</span>
+                            <span style={{ fontSize: "0.8rem", color: "#666" }}>{new Date(evo.created_at).toLocaleDateString()}</span>
+                          </div>
+                          <div style={{ fontSize: "0.85rem", marginBottom: "0.5rem" }}>
+                            <strong>Dolor EVA:</strong> {evo.eva_dolor} / 10 | <strong>Atendido por:</strong> {evo.especialista}
+                          </div>
+                          {evo.tratamiento && <div style={{ fontSize: "0.85rem", color: "#4A4A4A" }}><strong>Tratamiento:</strong> {evo.tratamiento}</div>}
+                          {evo.indicaciones && <div style={{ fontSize: "0.85rem", color: "#7D8E7C", marginTop: "0.25rem" }}><strong>Indicaciones:</strong> {evo.indicaciones}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ color: "#666", fontSize: "0.9rem" }}>No hay registros previas para este paciente.</p>
+                  )}
+                </div>
+
+              </div>
+            ) : (
+              <div style={{ textAlign: "center", padding: "4rem", backgroundColor: "#FFF", borderRadius: "20px", border: "1px dashed #A7B7A5" }}>
+                <p style={{ color: "#666" }}>Selecciona un paciente del menú superior para abrir su Ficha Médica.</p>
+              </div>
+            )}
+          </div>
+        )}
 
       </main>
     </div>

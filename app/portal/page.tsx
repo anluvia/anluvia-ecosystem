@@ -6,6 +6,7 @@ import { supabase } from "../../lib/supabase";
 export default function PortalPage() {
   const [user, setUser] = useState<any>(null);
   const [reservas, setReservas] = useState<any[]>([]);
+  const [evoluciones, setEvoluciones] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const portalCss = `
@@ -57,15 +58,23 @@ export default function PortalPage() {
       setUser(user);
 
       if (user?.email) {
-        const { data, error } = await supabase
+        // Cargar citas del usuario
+        const { data: resData } = await supabase
           .from('reservas')
           .select('*')
           .eq('paciente_email', user.email)
           .order('created_at', { ascending: false });
 
-        if (!error && data) {
-          setReservas(data);
-        }
+        if (resData) setReservas(resData);
+
+        // Cargar evoluciones kinesicas del usuario
+        const { data: evoData } = await supabase
+          .from('evoluciones')
+          .select('*')
+          .eq('paciente_email', user.email)
+          .order('created_at', { ascending: false });
+
+        if (evoData) setEvoluciones(evoData);
       }
     } catch (err) {
       console.error(err);
@@ -117,7 +126,7 @@ export default function PortalPage() {
               Bienvenido(a){user?.user_metadata?.full_name ? `, ${user.user_metadata.full_name}` : ""}
             </h1>
             <p style={{ color: "#666", margin: 0, fontSize: "0.95rem" }}>
-              Gestiona tus próximas atenciones, tratamiento actual y ficha médica.
+              Revisa el avance de tu tratamiento kinésico y tus próximas citas.
             </p>
           </div>
           <a href="/reservar" className="btn-salvia">
@@ -125,12 +134,56 @@ export default function PortalPage() {
           </a>
         </div>
 
-        {/* Sección de Citas Activas */}
+        {/* Historial de Evolucion Kinesica e Indicaciones */}
         <div style={{ marginBottom: "3rem" }}>
+          <h2 className="playfair" style={{ fontSize: "1.5rem", marginBottom: "1.25rem", color: "#8B2434" }}>
+            🩺 Mi Evolución Kinésica & Indicaciones
+          </h2>
+
+          {loading ? (
+            <p>Cargando información médica...</p>
+          ) : evoluciones.length > 0 ? (
+            <div style={{ display: "grid", gap: "1.25rem" }}>
+              {evoluciones.map((evo) => (
+                <div key={evo.id} className="card-portal" style={{ borderLeft: "5px solid #7D8E7C" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                    <div>
+                      <span className="badge-status" style={{ backgroundColor: "#E6F4EA", color: "#137333" }}>
+                        Sesión #{evo.numero_sesion} Registrada
+                      </span>
+                      <h3 style={{ fontSize: "1.1rem", margin: "0.5rem 0 0 0", color: "#1F1F1F" }}>
+                        Atención con {evo.especialista}
+                      </h3>
+                    </div>
+                    <div style={{ textAlign: "right", fontSize: "0.85rem", color: "#666" }}>
+                      {new Date(evo.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+
+                  {evo.indicaciones && (
+                    <div style={{ backgroundColor: "#F4EEE8", padding: "1rem", borderRadius: "12px", marginTop: "0.5rem" }}>
+                      <strong style={{ color: "#8B2434", fontSize: "0.9rem" }}>📋 Indicaciones y Ejercicios para el Hogar:</strong>
+                      <p style={{ margin: "0.25rem 0 0 0", fontSize: "0.9rem", color: "#4A4A4A" }}>
+                        {evo.indicaciones}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="card-portal" style={{ textAlign: "center", padding: "2rem" }}>
+              <p style={{ color: "#666" }}>Aún no tienes registros de evolución kinésica cargados por tu especialista.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Sección de Citas Activas */}
+        <div>
           <h2 className="playfair" style={{ fontSize: "1.5rem", marginBottom: "1.25rem" }}>Tus Citas Programadas</h2>
 
           {loading ? (
-            <div style={{ padding: "2rem", textAlign: "center", color: "#666" }}>Cargando tus citas...</div>
+            <p>Cargando tus citas...</p>
           ) : reservas.length > 0 ? (
             <div style={{ display: "grid", gap: "1.25rem" }}>
               {reservas.map((r) => (
@@ -152,13 +205,8 @@ export default function PortalPage() {
               ))}
             </div>
           ) : (
-            <div className="card-portal" style={{ textAlign: "center", padding: "3rem" }}>
-              <p style={{ color: "#666", marginBottom: "1.5rem" }}>
-                {user ? "Aún no tienes citas registradas con tu correo electrónico." : "Inicia sesión para ver tus citas programadas."}
-              </p>
-              <a href="/reservar" className="btn-salvia">
-                Reservar Mi Primera Hora
-              </a>
+            <div className="card-portal" style={{ textAlign: "center", padding: "2rem" }}>
+              <p style={{ color: "#666" }}>Aún no tienes citas agendadas.</p>
             </div>
           )}
         </div>
