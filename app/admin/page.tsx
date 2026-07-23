@@ -61,21 +61,6 @@ export default function AdminDashboard() {
   const [guardandoGasto, setGuardandoGasto] = useState(false);
   const [mensajeGasto, setMensajeGasto] = useState("");
 
-  // Formulario Marketing
-  const [campNombre, setCampNombre] = useState("");
-  const [campPlataforma, setCampPlataforma] = useState("Meta Ads (Instagram/FB)");
-  const [campInversion, setCampInversion] = useState("");
-  const [campClics, setCampClics] = useState("");
-  const [campCitas, setCampCitas] = useState("");
-  const [guardandoCampana, setGuardandoCampana] = useState(false);
-  const [mensajeCampana, setMensajeCampana] = useState("");
-
-  // Formulario Blog
-  const [blogTitulo, setBlogTitulo] = useState("");
-  const [blogCategoria, setBlogCategoria] = useState("Kinesiología");
-  const [blogContenido, setBlogContenido] = useState("");
-  const [mensajeBlog, setMensajeBlog] = useState("");
-
   const preciosServicios: Record<string, number> = {
     'Kinesiología & Recuperación Física': 45000,
     'Estética Facial Premium & Armonización': 55000,
@@ -212,50 +197,6 @@ export default function AdminDashboard() {
     setNumSesion(evolucionesPaciente.length + 1);
   };
 
-  const emitirBoletaPrueba = async () => {
-    setLoadingSii(true);
-    setResultadoSii(null);
-    const res = await emitirBoletaSII({
-      pacienteNombre: "Valentina Silva",
-      pacienteEmail: "paciente@anluvia.cl",
-      montoTotal: 45000,
-      glosaServicio: "Kinesiología & Recuperación Física - ANLUVIA",
-      exento: true,
-    });
-    if (res.success) {
-      const nuevaVenta = { id: Date.now().toString(), tipo: "Boleta Exenta", folio: res.folio, cliente: "Valentina Silva", email: "paciente@anluvia.cl", monto: 45000, fecha: new Date().toISOString().split("T")[0], estado: "Emitida SII" };
-      const actualizadas = [nuevaVenta, ...ventas];
-      setVentas(actualizadas);
-      localStorage.setItem("anluvia_ventas", JSON.stringify(actualizadas));
-    }
-    setResultadoSii(res);
-    setLoadingSii(false);
-  };
-
-  const emitirFacturaPrueba = async () => {
-    setLoadingSii(true);
-    setResultadoSii(null);
-    const res = await emitirFacturaSII({
-      rutEmpresa: "76.987.654-3",
-      razonSocial: "Inversiones & Salud SpA",
-      giro: "Servicios Médicos Corporativos",
-      direccion: "Av. Apoquindo #4500, Of 802",
-      comuna: "Las Condes",
-      email: "finanzas@empresa.cl",
-      montoNeto: 100000,
-      glosaServicio: "Convenio Kinesiología Preventiva ANLUVIA",
-      exento: true,
-    });
-    if (res.success) {
-      const nuevaVenta = { id: Date.now().toString(), tipo: "Factura Exenta", folio: res.folio, cliente: "Inversiones & Salud SpA (76.987.654-3)", email: "finanzas@empresa.cl", monto: 100000, fecha: new Date().toISOString().split("T")[0], estado: "Emitida SII" };
-      const actualizadas = [nuevaVenta, ...ventas];
-      setVentas(actualizadas);
-      localStorage.setItem("anluvia_ventas", JSON.stringify(actualizadas));
-    }
-    setResultadoSii(res);
-    setLoadingSii(false);
-  };
-
   const guardarEvolucion = async (e: React.FormEvent) => {
     e.preventDefault();
     setGuardandoEvolucion(true);
@@ -280,27 +221,6 @@ export default function AdminDashboard() {
     setGastos(nuevosGastos);
     localStorage.setItem("anluvia_gastos", JSON.stringify(nuevosGastos));
     setMensajeGasto("✅ Compra registrada."); setGastoConcepto(""); setGastoMonto(""); setGuardandoGasto(false);
-  };
-
-  const guardarCampana = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!campNombre || !campInversion) return;
-    setGuardandoCampana(true);
-    const nuevaCamp = { id: Date.now().toString(), nombre: campNombre, plataforma: campPlataforma, inversion: Number(campInversion), clics: Number(campClics || 0), citas: Number(campCitas || 0), fecha: new Date().toISOString().split("T")[0] };
-    const actualizadas = [nuevaCamp, ...campanas];
-    setCampanas(actualizadas);
-    localStorage.setItem("anluvia_campanas", JSON.stringify(actualizadas));
-    setMensajeCampana("✅ Campaña registrada."); setCampNombre(""); setCampInversion(""); setGuardandoCampana(false);
-  };
-
-  const guardarBlog = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!blogTitulo || !blogContenido) return;
-    const nuevoBlog = { id: Date.now().toString(), titulo: blogTitulo, categoria: blogCategoria, resumen: blogContenido.substring(0, 100) + "...", fecha: new Date().toISOString().split("T")[0] };
-    const actualizados = [nuevoBlog, ...blogs];
-    setBlogs(actualizados);
-    localStorage.setItem("anluvia_blogs", JSON.stringify(actualizados));
-    setMensajeBlog("✅ Artículo publicado."); setBlogTitulo(""); setBlogContenido("");
   };
 
   const exportarPDF = () => { if (!selectedPacienteEmail) return alert("Selecciona un paciente primero."); window.print(); };
@@ -379,20 +299,15 @@ export default function AdminDashboard() {
 
           <nav style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
             {hasRole('admin') && (
-              <>
-                <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'dashboard' ? 700 : 500, backgroundColor: activeTab === 'dashboard' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('dashboard')}>
-                  📊 Dashboard & Métricas
-                </div>
-                <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'equipo' ? 700 : 500, backgroundColor: activeTab === 'equipo' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('equipo')}>
-                  👥 Gestión Equipo & Roles
-                </div>
-                <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'marketing' ? 700 : 500, backgroundColor: activeTab === 'marketing' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('marketing')}>
-                  📣 Marketing & ROI Ads
-                </div>
-                <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'compras' ? 700 : 500, backgroundColor: activeTab === 'compras' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('compras')}>
-                  📉 Compras & Gastos
-                </div>
-              </>
+              <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'dashboard' ? 700 : 500, backgroundColor: activeTab === 'dashboard' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('dashboard')}>
+                📊 Dashboard & Métricas
+              </div>
+            )}
+
+            {hasRole('admin') && (
+              <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'equipo' ? 700 : 500, backgroundColor: activeTab === 'equipo' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('equipo')}>
+                👥 Gestión Equipo & Roles
+              </div>
             )}
 
             {(hasRole('admin') || hasRole('recepcion')) && (
@@ -404,12 +319,6 @@ export default function AdminDashboard() {
             {(hasRole('admin') || hasRole('especialista')) && (
               <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'fichas' ? 700 : 500, backgroundColor: activeTab === 'fichas' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('fichas')}>
                 🩺 Fichas Kinésicas (SOAP)
-              </div>
-            )}
-
-            {(hasRole('admin') || hasRole('editor')) && (
-              <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'contenido' ? 700 : 500, backgroundColor: activeTab === 'contenido' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('contenido')}>
-                ✍️ Contenido & Blog (CMS)
               </div>
             )}
 
@@ -439,7 +348,7 @@ export default function AdminDashboard() {
               </div>
               <div style={{ backgroundColor: "#FFF", padding: "1.5rem", borderRadius: "20px", border: "1px solid #E2E8F0" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight 700, color: "#8B2434", textTransform: "uppercase" }}>Gastos</span>
-                <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#8B2434", marginTop: "0.3rem" }}>${egresosTotales.toLocaleString('es-CL')} CLP</div>
+                <div style={{ fontSize: "1.8rem", fontWeight 700, color: "#8B2434", marginTop: "0.3rem" }}>${egresosTotales.toLocaleString('es-CL')} CLP</div>
               </div>
               <div style={{ backgroundColor: "#FFF", padding: "1.5rem", borderRadius: "20px", border: "1px solid #E2E8F0" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight 700, color: "#137333", textTransform: "uppercase" }}>Ganancia Neta</span>
@@ -447,7 +356,7 @@ export default function AdminDashboard() {
               </div>
               <div style={{ backgroundColor: "#FFF", padding: "1.5rem", borderRadius: "20px", border: "1px solid #E2E8F0" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight 700, color: "#7D8E7C", textTransform: "uppercase" }}>Margen</span>
-                <div style={{ fontSize: "1.8rem", fontWeight: 700, marginTop: "0.3rem" }}>{margenRentabilidad}%</div>
+                <div style={{ fontSize: "1.8rem", fontWeight 700, marginTop: "0.3rem" }}>{margenRentabilidad}%</div>
               </div>
             </div>
           </div>
