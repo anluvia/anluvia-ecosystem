@@ -1,4 +1,6 @@
-﻿import React, { useState } from "react";
+﻿'use client';
+
+import React, { useState } from "react";
 
 export default function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false);
