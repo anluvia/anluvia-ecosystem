@@ -37,15 +37,15 @@ export default function HomePage() {
 
   return (
     <div style={{ backgroundColor: "#FBF9F6", color: "#1F1F1F", fontFamily: "sans-serif", minHeight: "100vh" }}>
-      {/* NAVEGACIÓN PRINCIPAL CON LOGO AGRANDADO */}
-      <header style={{ borderBottom: "1px solid #F4EEE8", backgroundColor: "#FFFFFF", padding: "0.75rem 3rem", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 50 }}>
+      {/* NAVEGACIÓN PRINCIPAL CON LOGO 50% MÁS GRANDE (142px) */}
+      <header style={{ borderBottom: "1px solid #F4EEE8", backgroundColor: "#FFFFFF", padding: "0.5rem 3rem", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 50 }}>
         <div style={{ display: "flex", alignItems: "center" }}>
-          <img src="/logo.png" alt="ANLUVIA Clínica Integral" style={{ height: "95px", width: "auto", objectFit: "contain" }} />
+          <img src="/logo.png" alt="ANLUVIA Clínica Integral" style={{ height: "142px", width: "auto", objectFit: "contain" }} />
         </div>
 
         <nav style={{ display: "flex", gap: "2rem", alignItems: "center" }}>
           <a href="#servicios" style={{ color: "#4A4A4A", textDecoration: "none", fontSize: "0.95rem", fontWeight: 600 }}>Servicios</a>
-          <a href="#nosotros" style={{ color: "#4A4A4A", textDecoration: "none", fontSize: "0.95rem", fontWeight: 600 }}>Nosotros</a>
+          <a href="#nosotros" style={{ color: "#4A4A4A", textDecoration: "none", fontSize: "0.9rem", fontWeight: 600 }}>Nosotros</a>
           <Link href="/admin" style={{ color: "#7D8E7C", textDecoration: "none", fontSize: "0.85rem", fontWeight: 700, border: "1px solid #7D8E7C", padding: "0.45rem 1.1rem", borderRadius: "9999px" }}>
             Acceso Equipo
           </Link>
@@ -55,8 +55,8 @@ export default function HomePage() {
         </nav>
       </header>
 
-      {/* HERO SECTION */}
-      <section style={{ padding: "5rem 3rem 6rem 3rem", textAlign: "center", maxWidth: "900px", margin: "0 auto" }}>
+      {/* HERO SECTION - Ajuste leve de padding superior */}
+      <section style={{ padding: "4rem 3rem 6rem 3rem", textAlign: "center", maxWidth: "900px", margin: "0 auto" }}>
         <span style={{ backgroundColor: "#F4EEE8", color: "#8B2434", padding: "0.4rem 1.25rem", borderRadius: "9999px", fontSize: "0.8rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", display: "inline-block", marginBottom: "1.5rem" }}>
           SALUD, ESTÉTICA & BIENESTAR INTEGRAL
         </span>
@@ -105,14 +105,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* FOOTER */}
+      {/* FOOTER - Ajuste proporcional del logo */}
       <footer style={{ backgroundColor: "#1F1F1F", color: "#FFFFFF", padding: "4rem 3rem 2rem 3rem" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #333", paddingBottom: "3rem", marginBottom: "2rem" }}>
           <div>
-            <div style={{ backgroundColor: "#FFFFFF", padding: "0.6rem 1.2rem", borderRadius: "14px", display: "inline-block" }}>
-              <img src="/logo.png" alt="ANLUVIA" style={{ height: "75px", width: "auto", objectFit: "contain" }} />
+            <div style={{ backgroundColor: "#FFFFFF", padding: "0.75rem 1.5rem", borderRadius: "16px", display: "inline-block" }}>
+              <img src="/logo.png" alt="ANLUVIA" style={{ height: "110px", width: "auto", objectFit: "contain" }} />
             </div>
-            <p style={{ color: "#AAA", fontSize: "0.85rem", marginTop: "0.85rem" }}>Av. Las Condes #12345, Santiago, Chile • +56 9 1234 5678</p>
+            <p style={{ color: "#AAA", fontSize: "0.85rem", marginTop: "1rem" }}>Av. Las Condes #12345, Santiago, Chile • +56 9 1234 5678</p>
           </div>
           <div>
             <Link href="/reservar" style={{ backgroundColor: "#8B2434", color: "#FFF", padding: "0.85rem 2rem", borderRadius: "9999px", textDecoration: "none", fontWeight: 700 }}>
