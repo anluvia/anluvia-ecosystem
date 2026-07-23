@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import React, { useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function ReservarPage() {
   const [step, setStep] = useState(1);
@@ -8,6 +9,10 @@ export default function ReservarPage() {
   const [profesional, setProfesional] = useState('');
   const [fecha, setFecha] = useState('');
   const [hora, setHora] = useState('');
+  const [nombre, setNombre] = useState('');
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [mensaje, setMensaje] = useState('');
 
   const servicios = [
     { id: 'kine', nombre: 'Kinesiología & Recuperación Física', duracion: '60 min', precio: '$45.000' },
@@ -23,6 +28,39 @@ export default function ReservarPage() {
   ];
 
   const horasDisponibles = ['09:00', '10:30', '12:00', '15:30', '17:00', '18:30'];
+
+  const guardarReserva = async () => {
+    setLoading(true);
+    setMensaje('');
+
+    try {
+      const { error } = await supabase.from('reservas').insert([
+        {
+          servicio,
+          especialista: profesional,
+          fecha,
+          hora,
+          paciente_nombre: nombre || 'Paciente ANLUVIA',
+          paciente_email: email || 'paciente@anluvia.com',
+          estado: 'Confirmada'
+        }
+      ]);
+
+      if (error) {
+        console.error("Error al guardar reserva:", error);
+        setMensaje("⚠️ Hubo un detalle al conectar con Supabase, pero te redireccionaremos al portal.");
+      } else {
+        setMensaje("🎉 ¡Reserva guardada exitosamente en la base de datos!");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+      setTimeout(() => {
+        window.location.href = "/portal";
+      }, 1500);
+    }
+  };
 
   return (
     <div style={{ backgroundColor: "#FBF9F6", color: "#1F1F1F", fontFamily: "Inter, sans-serif", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
@@ -72,9 +110,18 @@ export default function ReservarPage() {
           font-weight: 500;
           cursor: pointer;
         }
+
+        .input-anluvia {
+          width: 100%;
+          padding: 0.8rem 1.2rem;
+          border-radius: 12px;
+          border: 1px solid #ccc;
+          font-size: 0.95rem;
+          outline: none;
+          box-sizing: border-box;
+        }
       `}</style>
 
-      {/* Header Navigation */}
       <header style={{ padding: "1.25rem 3rem", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #F4EEE8" }}>
         <a href="/" style={{ textDecoration: "none", color: "#1F1F1F" }} className="playfair">
           <span style={{ fontSize: "1.75rem", fontWeight: 700, letterSpacing: "0.05em" }}>ANLUVIA</span>
@@ -87,7 +134,6 @@ export default function ReservarPage() {
         </a>
       </header>
 
-      {/* Progress Tracker */}
       <div style={{ backgroundColor: "#F4EEE8", padding: "1rem 2rem", display: "flex", justifyContent: "center", gap: "2rem", fontSize: "0.85rem", fontWeight: 600, color: "#666" }}>
         <span style={{ color: step >= 1 ? "#7D8E7C" : "#999" }}>1. Tratamiento</span>
         <span>→</span>
@@ -98,10 +144,8 @@ export default function ReservarPage() {
         <span style={{ color: step >= 4 ? "#8B2434" : "#999" }}>4. Confirmación</span>
       </div>
 
-      {/* Form Steps */}
       <main style={{ flex: 1, maxWidth: "800px", margin: "0 auto", padding: "3rem 1.5rem", width: "100%" }}>
         
-        {/* STEP 1: Servicios */}
         {step === 1 && (
           <div>
             <h1 className="playfair" style={{ fontSize: "2.25rem", marginBottom: "0.5rem" }}>Selecciona tu Tratamiento</h1>
@@ -137,7 +181,6 @@ export default function ReservarPage() {
           </div>
         )}
 
-        {/* STEP 2: Profesional */}
         {step === 2 && (
           <div>
             <h1 className="playfair" style={{ fontSize: "2.25rem", marginBottom: "0.5rem" }}>Elige a tu Profesional</h1>
@@ -176,22 +219,32 @@ export default function ReservarPage() {
           </div>
         )}
 
-        {/* STEP 3: Fecha y Hora */}
         {step === 3 && (
           <div>
-            <h1 className="playfair" style={{ fontSize: "2.25rem", marginBottom: "0.5rem" }}>Selecciona Fecha y Hora</h1>
+            <h1 className="playfair" style={{ fontSize: "2.25rem", marginBottom: "0.5rem" }}>Selecciona Fecha y Datos</h1>
             <p style={{ color: "#666", marginBottom: "2rem" }}>Indica el día y horario que mejor se adapte a tu agenda.</p>
 
-            <div style={{ marginBottom: "2rem" }}>
-              <label style={{ display: "block", fontSize: "0.9rem", fontWeight: 600, color: "#666", marginBottom: "0.5rem" }}>
-                Fecha de Atención
-              </label>
-              <input
-                type="date"
-                value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
-                style={{ padding: "0.8rem 1.2rem", borderRadius: "12px", border: "1px solid #ccc", width: "100%", fontSize: "1rem", outline: "none" }}
-              />
+            <div style={{ display: "grid", gap: "1.25rem", marginBottom: "1.5rem" }}>
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#666", marginBottom: "0.4rem" }}>
+                  Tu Nombre Completo
+                </label>
+                <input type="text" placeholder="Valentina Silva" value={nombre} onChange={(e) => setNombre(e.target.value)} className="input-anluvia" />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#666", marginBottom: "0.4rem" }}>
+                  Correo Electrónico
+                </label>
+                <input type="email" placeholder="paciente@anluvia.com" value={email} onChange={(e) => setEmail(e.target.value)} className="input-anluvia" />
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#666", marginBottom: "0.4rem" }}>
+                  Fecha de Atención
+                </label>
+                <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="input-anluvia" />
+              </div>
             </div>
 
             {fecha && (
@@ -224,9 +277,9 @@ export default function ReservarPage() {
               <button className="btn-outline" onClick={() => setStep(2)}>← Volver</button>
               <button
                 className="btn-salvia"
-                disabled={!fecha || !hora}
+                disabled={!fecha || !hora || !nombre}
                 onClick={() => setStep(4)}
-                style={{ opacity: fecha && hora ? 1 : 0.5 }}
+                style={{ opacity: fecha && hora && nombre ? 1 : 0.5 }}
               >
                 Siguiente: Resumen →
               </button>
@@ -234,31 +287,41 @@ export default function ReservarPage() {
           </div>
         )}
 
-        {/* STEP 4: Confirmación */}
         {step === 4 && (
           <div style={{ textAlign: "center" }}>
             <span style={{ fontSize: "3rem" }}>✨</span>
             <h1 className="playfair" style={{ fontSize: "2.25rem", marginTop: "1rem" }}>¡Tu Cita está Lista!</h1>
-            <p style={{ color: "#666", marginBottom: "2rem" }}>Revisa los detalles de tu reserva antes de confirmar.</p>
+            <p style={{ color: "#666", marginBottom: "2rem" }}>Revisa los detalles de tu reserva antes de confirmar en Supabase.</p>
 
             <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #A7B7A5", borderRadius: "20px", padding: "2rem", textAlign: "left", marginBottom: "2rem", boxShadow: "0 10px 30px -10px rgba(0,0,0,0.05)" }}>
               <div style={{ borderBottom: "1px solid #F4EEE8", paddingBottom: "1rem", marginBottom: "1rem" }}>
-                <span style={{ fontSize: "0.8rem", color: "#8B2434", fontWeight: 600, letterSpacing: "0.1em" }}>TRATAMIENTO</span>
-                <div style={{ fontSize: "1.2rem", fontWeight: 600, color: "#1F1F1F" }}>{servicio}</div>
+                <span style={{ fontSize: "0.8rem", color: "#8B2434", fontWeight: 600, letterSpacing: "0.1em" }}>PACIENTE</span>
+                <div style={{ fontSize: "1.1rem", fontWeight: 600, color: "#1F1F1F" }}>{nombre} ({email})</div>
               </div>
               <div style={{ borderBottom: "1px solid #F4EEE8", paddingBottom: "1rem", marginBottom: "1rem" }}>
-                <span style={{ fontSize: "0.8rem", color: "#7D8E7C", fontWeight: 600, letterSpacing: "0.1em" }}>PROFESIONAL</span>
-                <div style={{ fontSize: "1.1rem", fontWeight: 600, color: "#1F1F1F" }}>{profesional}</div>
+                <span style={{ fontSize: "0.8rem", color: "#7D8E7C", fontWeight: 600, letterSpacing: "0.1em" }}>TRATAMIENTO</span>
+                <div style={{ fontSize: "1.2rem", fontWeight: 600, color: "#1F1F1F" }}>{servicio}</div>
               </div>
               <div>
                 <span style={{ fontSize: "0.8rem", color: "#666", fontWeight: 600, letterSpacing: "0.1em" }}>FECHA Y HORA</span>
-                <div style={{ fontSize: "1.1rem", fontWeight: 600, color: "#1F1F1F" }}>{fecha} a las {hora} hrs</div>
+                <div style={{ fontSize: "1.1rem", fontWeight: 600, color: "#1F1F1F" }}>{fecha} a las {hora} hrs con {profesional}</div>
               </div>
             </div>
 
-            <a href="/portal" className="btn-salvia" style={{ display: "inline-block", textDecoration: "none", width: "100%" }}>
-              Confirmar Reserva e Ingresar al Portal
-            </a>
+            {mensaje && (
+              <div style={{ padding: "1rem", backgroundColor: "#F4EEE8", borderRadius: "12px", color: "#7D8E7C", fontWeight: 600, marginBottom: "1.5rem" }}>
+                {mensaje}
+              </div>
+            )}
+
+            <button
+              onClick={guardarReserva}
+              disabled={loading}
+              className="btn-salvia"
+              style={{ width: "100%", fontSize: "1rem" }}
+            >
+              {loading ? "Guardando en Supabase..." : "Confirmar Reserva e Ingresar al Portal"}
+            </button>
           </div>
         )}
 
