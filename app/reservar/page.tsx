@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React, { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "../../lib/supabase";
 
 export default function ReservarPage() {
   const [step, setStep] = useState(1);
@@ -40,25 +40,26 @@ export default function ReservarPage() {
           especialista: profesional,
           fecha,
           hora,
-          paciente_nombre: nombre || 'Paciente ANLUVIA',
-          paciente_email: email || 'paciente@anluvia.com',
+          paciente_nombre: nombre,
+          paciente_email: email,
           estado: 'Confirmada'
         }
       ]);
 
       if (error) {
-        console.error("Error al guardar reserva:", error);
-        setMensaje("⚠️ Hubo un detalle al conectar con Supabase, pero te redireccionaremos al portal.");
+        console.error("Error Supabase:", error);
+        setMensaje("⚠️ " + error.message);
       } else {
-        setMensaje("🎉 ¡Reserva guardada exitosamente en la base de datos!");
+        setMensaje("🎉 ¡Reserva guardada exitosamente en Supabase!");
+        setTimeout(() => {
+          window.location.href = "/portal";
+        }, 1500);
       }
     } catch (err) {
       console.error(err);
+      setMensaje("⚠️ Ocurrió un error al procesar.");
     } finally {
       setLoading(false);
-      setTimeout(() => {
-        window.location.href = "/portal";
-      }, 1500);
     }
   };
 
@@ -119,6 +120,7 @@ export default function ReservarPage() {
           font-size: 0.95rem;
           outline: none;
           box-sizing: border-box;
+          background-color: #FFF;
         }
       `}</style>
 
@@ -139,7 +141,7 @@ export default function ReservarPage() {
         <span>→</span>
         <span style={{ color: step >= 2 ? "#7D8E7C" : "#999" }}>2. Especialista</span>
         <span>→</span>
-        <span style={{ color: step >= 3 ? "#7D8E7C" : "#999" }}>3. Fecha y Hora</span>
+        <span style={{ color: step >= 3 ? "#7D8E7C" : "#999" }}>3. Datos & Fecha</span>
         <span>→</span>
         <span style={{ color: step >= 4 ? "#8B2434" : "#999" }}>4. Confirmación</span>
       </div>
@@ -213,7 +215,7 @@ export default function ReservarPage() {
                 onClick={() => setStep(3)}
                 style={{ opacity: profesional ? 1 : 0.5 }}
               >
-                Siguiente: Fecha y Hora →
+                Siguiente: Datos y Fecha →
               </button>
             </div>
           </div>
@@ -221,27 +223,27 @@ export default function ReservarPage() {
 
         {step === 3 && (
           <div>
-            <h1 className="playfair" style={{ fontSize: "2.25rem", marginBottom: "0.5rem" }}>Selecciona Fecha y Datos</h1>
-            <p style={{ color: "#666", marginBottom: "2rem" }}>Indica el día y horario que mejor se adapte a tu agenda.</p>
+            <h1 className="playfair" style={{ fontSize: "2.25rem", marginBottom: "0.5rem" }}>Tus Datos y Fecha</h1>
+            <p style={{ color: "#666", marginBottom: "2rem" }}>Ingresa tu información de contacto y selecciona el horario de tu cita.</p>
 
             <div style={{ display: "grid", gap: "1.25rem", marginBottom: "1.5rem" }}>
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#666", marginBottom: "0.4rem" }}>
-                  Tu Nombre Completo
+                  Tu Nombre Completo *
                 </label>
-                <input type="text" placeholder="Valentina Silva" value={nombre} onChange={(e) => setNombre(e.target.value)} className="input-anluvia" />
+                <input type="text" placeholder="Ej. Valentina Silva" value={nombre} onChange={(e) => setNombre(e.target.value)} className="input-anluvia" />
               </div>
 
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#666", marginBottom: "0.4rem" }}>
-                  Correo Electrónico
+                  Correo Electrónico *
                 </label>
-                <input type="email" placeholder="paciente@anluvia.com" value={email} onChange={(e) => setEmail(e.target.value)} className="input-anluvia" />
+                <input type="email" placeholder="Ej. paciente@anluvia.com" value={email} onChange={(e) => setEmail(e.target.value)} className="input-anluvia" />
               </div>
 
               <div>
                 <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#666", marginBottom: "0.4rem" }}>
-                  Fecha de Atención
+                  Fecha de Atención *
                 </label>
                 <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="input-anluvia" />
               </div>
@@ -250,7 +252,7 @@ export default function ReservarPage() {
             {fecha && (
               <div>
                 <label style={{ display: "block", fontSize: "0.9rem", fontWeight: 600, color: "#666", marginBottom: "0.75rem" }}>
-                  Horarios Disponibles
+                  Horarios Disponibles *
                 </label>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: "0.75rem" }}>
                   {horasDisponibles.map((h) => (
@@ -277,9 +279,9 @@ export default function ReservarPage() {
               <button className="btn-outline" onClick={() => setStep(2)}>← Volver</button>
               <button
                 className="btn-salvia"
-                disabled={!fecha || !hora || !nombre}
+                disabled={!fecha || !hora || !nombre || !email}
                 onClick={() => setStep(4)}
-                style={{ opacity: fecha && hora && nombre ? 1 : 0.5 }}
+                style={{ opacity: (fecha && hora && nombre && email) ? 1 : 0.5 }}
               >
                 Siguiente: Resumen →
               </button>
@@ -290,8 +292,8 @@ export default function ReservarPage() {
         {step === 4 && (
           <div style={{ textAlign: "center" }}>
             <span style={{ fontSize: "3rem" }}>✨</span>
-            <h1 className="playfair" style={{ fontSize: "2.25rem", marginTop: "1rem" }}>¡Tu Cita está Lista!</h1>
-            <p style={{ color: "#666", marginBottom: "2rem" }}>Revisa los detalles de tu reserva antes de confirmar en Supabase.</p>
+            <h1 className="playfair" style={{ fontSize: "2.25rem", marginTop: "1rem" }}>¡Confirmar Reserva!</h1>
+            <p style={{ color: "#666", marginBottom: "2rem" }}>Revisa los detalles de tu cita antes de enviarla a la base de datos.</p>
 
             <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #A7B7A5", borderRadius: "20px", padding: "2rem", textAlign: "left", marginBottom: "2rem", boxShadow: "0 10px 30px -10px rgba(0,0,0,0.05)" }}>
               <div style={{ borderBottom: "1px solid #F4EEE8", paddingBottom: "1rem", marginBottom: "1rem" }}>
@@ -299,7 +301,7 @@ export default function ReservarPage() {
                 <div style={{ fontSize: "1.1rem", fontWeight: 600, color: "#1F1F1F" }}>{nombre} ({email})</div>
               </div>
               <div style={{ borderBottom: "1px solid #F4EEE8", paddingBottom: "1rem", marginBottom: "1rem" }}>
-                <span style={{ fontSize: "0.8rem", color: "#7D8E7C", fontWeight: 600, letterSpacing: "0.1em" }}>TRATAMIENTO</span>
+                <span style={{ fontSize: "0.8rem", color: "#7D8E7C", fontWeight 600, letterSpacing: "0.1em" }}>TRATAMIENTO</span>
                 <div style={{ fontSize: "1.2rem", fontWeight: 600, color: "#1F1F1F" }}>{servicio}</div>
               </div>
               <div>
@@ -320,7 +322,7 @@ export default function ReservarPage() {
               className="btn-salvia"
               style={{ width: "100%", fontSize: "1rem" }}
             >
-              {loading ? "Guardando en Supabase..." : "Confirmar Reserva e Ingresar al Portal"}
+              {loading ? "Guardando en Supabase..." : "Confirmar Reserva e Ingresar"}
             </button>
           </div>
         )}
