@@ -82,18 +82,20 @@ export default function AdminDashboard() {
     .btn-pdf {
       background-color: #8B2434;
       color: #FFFFFF;
-      padding: 0.65rem 1.25rem;
+      padding: 0.75rem 1.5rem;
       border-radius: 9999px;
       border: none;
-      font-weight: 600;
-      font-size: 0.85rem;
+      font-weight: 700;
+      font-size: 0.9rem;
       cursor: pointer;
       transition: all 0.3s ease;
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
+      box-shadow: 0 4px 12px rgba(139, 36, 52, 0.25);
     }
     .btn-pdf:hover { background-color: #721c29; }
+    .btn-pdf:disabled { opacity: 0.5; cursor: not-allowed; }
 
     .input-anluvia {
       width: 100%;
@@ -117,7 +119,7 @@ export default function AdminDashboard() {
       font-family: inherit;
     }
 
-    /* ESTILOS DE IMPRESIÓN OFICIAL PARA PDF */
+    /* ESTILOS EXCLUSIVOS DE IMPRESIÓN PARA PDF */
     @media print {
       body * {
         visibility: hidden;
@@ -207,6 +209,10 @@ export default function AdminDashboard() {
   };
 
   const exportarPDF = () => {
+    if (!selectedPacienteEmail) {
+      alert("Por favor selecciona un paciente primero.");
+      return;
+    }
     window.print();
   };
 
@@ -312,17 +318,21 @@ export default function AdminDashboard() {
         {/* Pestaña: Fichas & Evolucion Kinesica */}
         {activeTab === 'fichas' && (
           <div>
+            {/* Cabecera Principal - BOTÓN SIEMPRE VISIBLE */}
             <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
               <div>
                 <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#8B2434", letterSpacing: "0.1em" }}>REGISTRO CLÍNICO OFICIAL</span>
                 <h1 className="playfair" style={{ fontSize: "2.25rem", margin: "0.25rem 0 0 0" }}>Ficha Médica & Evolución SOAP</h1>
               </div>
 
-              {selectedPacienteEmail && (
-                <button onClick={exportarPDF} className="btn-pdf">
-                  📄 Descargar Ficha en PDF
-                </button>
-              )}
+              <button
+                onClick={exportarPDF}
+                disabled={!selectedPacienteEmail}
+                className="btn-pdf"
+                title={!selectedPacienteEmail ? "Selecciona un paciente primero" : "Exportar en PDF"}
+              >
+                📄 Descargar Ficha en PDF
+              </button>
             </div>
 
             {/* Selector de Paciente */}
@@ -350,8 +360,10 @@ export default function AdminDashboard() {
 
             {selectedPacienteEmail ? (
               <div>
-                {/* Formulario de Entrada (Oculto en Impresión) */}
+                {/* Formulario e Historial (Oculto en Impresión) */}
                 <div className="no-print" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", marginBottom: "2rem" }}>
+                  
+                  {/* Formulario */}
                   <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
                     <h3 className="playfair" style={{ fontSize: "1.3rem", marginTop: 0, color: "#8B2434" }}>
                       + Registrar Nueva Evolución (Sesión #{numSesion})
@@ -372,23 +384,23 @@ export default function AdminDashboard() {
                       </div>
 
                       <div>
-                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Subjetivo (Sintomatología):</label>
-                        <textarea placeholder="Ej. Refiere molestia lumbar al flexionar..." value={subjetivo} onChange={(e) => setSubjetivo(e.target.value)} className="textarea-anluvia" />
+                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Subjetivo (Relato del paciente):</label>
+                        <textarea placeholder="Ej. Refiere disminución del dolor articular tras última sesión..." value={subjetivo} onChange={(e) => setSubjetivo(e.target.value)} className="textarea-anluvia" />
                       </div>
 
                       <div>
-                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Objetivo (Evaluación Física):</label>
-                        <textarea placeholder="Ej. Palpación muscular rígida en zona L4-L5..." value={objetivo} onChange={(e) => setObjetivo(e.target.value)} className="textarea-anluvia" />
+                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Objetivo (Evaluación física):</label>
+                        <textarea placeholder="Ej. Rango de flexión recuperado a 110°. Sensibilidad normal..." value={objetivo} onChange={(e) => setObjetivo(e.target.value)} className="textarea-anluvia" />
                       </div>
 
                       <div>
                         <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Tratamiento Aplicado:</label>
-                        <textarea placeholder="Ej. Terapia manual, masoterapia, ultrasonido..." value={tratamiento} onChange={(e) => setTratamiento(e.target.value)} className="textarea-anluvia" />
+                        <textarea placeholder="Ej. Terapia manual, ultrasonido, reeducación motora..." value={tratamiento} onChange={(e) => setTratamiento(e.target.value)} className="textarea-anluvia" />
                       </div>
 
                       <div>
                         <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Indicaciones para el Hogar:</label>
-                        <textarea placeholder="Ej. Crioterapia 15 min por 3 días..." value={indicaciones} onChange={(e) => setIndicaciones(e.target.value)} className="textarea-anluvia" />
+                        <textarea placeholder="Ej. Ejercicios de movilidad 2 veces al día. Crioterapia por 15 min..." value={indicaciones} onChange={(e) => setIndicaciones(e.target.value)} className="textarea-anluvia" />
                       </div>
 
                       <button type="submit" disabled={guardandoEvolucion} className="btn-salvia" style={{ width: "100%", padding: "0.85rem" }}>
@@ -397,10 +409,17 @@ export default function AdminDashboard() {
                     </form>
                   </div>
 
+                  {/* Historial Clínico con Segundo Botón de Impresión */}
                   <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
-                    <h3 className="playfair" style={{ fontSize: "1.3rem", marginTop: 0, color: "#7D8E7C" }}>
-                      Historial Clínico: {selectedPacienteNombre}
-                    </h3>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                      <h3 className="playfair" style={{ fontSize: "1.3rem", margin: 0, color: "#7D8E7C" }}>
+                        Historial Clínico: {selectedPacienteNombre}
+                      </h3>
+                      <button onClick={exportarPDF} className="btn-pdf" style={{ fontSize: "0.75rem", padding: "0.4rem 0.85rem" }}>
+                        🖨️ PDF
+                      </button>
+                    </div>
+
                     {evolucionesPacienteActual.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxHeight: "500px", overflowY: "auto" }}>
                         {evolucionesPacienteActual.map((evo) => (
@@ -409,21 +428,23 @@ export default function AdminDashboard() {
                               <span style={{ fontWeight: 700, color: "#8B2434" }}>Sesión #{evo.numero_sesion}</span>
                               <span style={{ fontSize: "0.8rem", color: "#666" }}>{new Date(evo.created_at).toLocaleDateString()}</span>
                             </div>
-                            <div style={{ fontSize: "0.85rem" }}><strong>Dolor EVA:</strong> {evo.eva_dolor}/10</div>
-                            {evo.tratamiento && <div style={{ fontSize: "0.85rem", color: "#4A4A4A" }}><strong>Tratamiento:</strong> {evo.tratamiento}</div>}
+                            <div style={{ fontSize: "0.85rem" }}><strong>Dolor EVA:</strong> {evo.eva_dolor}/10 | <strong>Especialista:</strong> {evo.especialista}</div>
+                            {evo.tratamiento && <div style={{ fontSize: "0.85rem", color: "#4A4A4A", marginTop: "0.2rem" }}><strong>Tratamiento:</strong> {evo.tratamiento}</div>}
+                            {evo.indicaciones && <div style={{ fontSize: "0.85rem", color: "#7D8E7C", marginTop: "0.2rem" }}><strong>Indicaciones:</strong> {evo.indicaciones}</div>}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p style={{ color: "#666", fontSize: "0.9rem" }}>No hay registros previos.</p>
+                      <p style={{ color: "#666", fontSize: "0.9rem" }}>No hay registros previos para este paciente.</p>
                     )}
                   </div>
+
                 </div>
 
-                {/* --- PLANTILLA OFICIAL DE DOCUMENTO PDF (VISIBLE EN PANTALLA E IMPRESIÓN) --- */}
-                <div id="area-pdf-oficial" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "2px solid #7D8E7C", padding: "3rem", boxShadow: "0 10px 30px rgba(0,0,0,0.05)" }}>
+                {/* --- DOCUMENTO PARA IMPRESIÓN / DESCARGA PDF --- */}
+                <div id="area-pdf-oficial" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "2px solid #7D8E7C", padding: "3rem", marginTop: "2rem" }}>
                   
-                  {/* Membrete Clinico */}
+                  {/* Membrete */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #8B2434", paddingBottom: "1.5rem", marginBottom: "2rem" }}>
                     <div>
                       <h1 className="playfair" style={{ fontSize: "2rem", margin: 0, color: "#1F1F1F", letterSpacing: "0.05em" }}>ANLUVIA</h1>
@@ -490,14 +511,13 @@ export default function AdminDashboard() {
                     <p style={{ color: "#666", fontSize: "0.9rem" }}>Sin evoluciones registradas aún para este paciente.</p>
                   )}
 
-                  {/* Pie de Firma Oficial */}
+                  {/* Pie de Firma */}
                   <div style={{ marginTop: "4rem", paddingTop: "2rem", borderTop: "1px solid #ddd", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                     <div style={{ fontSize: "0.75rem", color: "#888" }}>
-                      Documento generado electrónicamente por ANLUVIA Ecosistema Clínico.<br>
-                      Código de Validación Interna: {selectedPacienteEmail.substring(0, 5)}-{Date.now().toString().substring(6)}
+                      Documento generado electrónicamente por ANLUVIA Ecosistema Clínico.
                     </div>
 
-                    <div style={{ textCenter: "center", width: "220px", textAlign: "center" }}>
+                    <div style={{ textAlign: "center", width: "220px" }}>
                       <div style={{ borderBottom: "1px solid #000", marginBottom: "0.5rem" }}></div>
                       <div style={{ fontSize: "0.85rem", fontWeight: 700 }}>Firma del Especialista</div>
                       <div style={{ fontSize: "0.75rem", color: "#666" }}>{especialista}</div>
