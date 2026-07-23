@@ -45,14 +45,6 @@ export default function AdminDashboard() {
       font-weight: 600;
     }
 
-    .card-stat {
-      background-color: #FFFFFF;
-      border: 1px solid rgba(167, 183, 165, 0.3);
-      border-radius: 16px;
-      padding: 1.5rem;
-      box-shadow: 0 4px 20px -5px rgba(31, 31, 31, 0.03);
-    }
-
     .table-admin {
       width: 100%;
       border-collapse: collapse;
@@ -85,9 +77,23 @@ export default function AdminDashboard() {
       cursor: pointer;
       transition: all 0.3s ease;
     }
-    .btn-salvia:hover {
-      background-color: #6a7b69;
+    .btn-salvia:hover { background-color: #6a7b69; }
+
+    .btn-pdf {
+      background-color: #8B2434;
+      color: #FFFFFF;
+      padding: 0.65rem 1.25rem;
+      border-radius: 9999px;
+      border: none;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
     }
+    .btn-pdf:hover { background-color: #721c29; }
 
     .input-anluvia {
       width: 100%;
@@ -109,6 +115,28 @@ export default function AdminDashboard() {
       box-sizing: border-box;
       min-height: 80px;
       font-family: inherit;
+    }
+
+    /* ESTILOS DE IMPRESIÓN OFICIAL PARA PDF */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #area-pdf-oficial, #area-pdf-oficial * {
+        visibility: visible;
+      }
+      #area-pdf-oficial {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        padding: 20px;
+        background-color: #FFF !important;
+        color: #000 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
     }
   `;
 
@@ -136,7 +164,6 @@ export default function AdminDashboard() {
     setSelectedPacienteNombre(pacienteNombre);
     setActiveTab('fichas');
 
-    // Calcular proxima sesion
     const evolucionesPaciente = evoluciones.filter(e => e.paciente_email === pacienteEmail);
     setNumSesion(evolucionesPaciente.length + 1);
   };
@@ -179,6 +206,10 @@ export default function AdminDashboard() {
     }
   };
 
+  const exportarPDF = () => {
+    window.print();
+  };
+
   const pacientesUnicos = Array.from(new Set(reservas.map(r => r.paciente_email))).map(email => {
     const reserva = reservas.find(r => r.paciente_email === email);
     return {
@@ -187,12 +218,14 @@ export default function AdminDashboard() {
     };
   });
 
+  const evolucionesPacienteActual = evoluciones.filter(e => e.paciente_email === selectedPacienteEmail);
+
   return (
     <div style={{ backgroundColor: "#FBF9F6", color: "#1F1F1F", fontFamily: "Inter, sans-serif", minHeight: "100vh", display: "flex" }}>
       <style dangerouslySetInnerHTML={{ __html: adminCss }} />
 
       {/* Sidebar Lateral */}
-      <aside style={{ width: "260px", borderRight: "1px solid #F4EEE8", backgroundColor: "#FFFFFF", padding: "2rem 1.5rem", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+      <aside className="no-print" style={{ width: "260px", borderRight: "1px solid #F4EEE8", backgroundColor: "#FFFFFF", padding: "2rem 1.5rem", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
         <div>
           <div style={{ marginBottom: "2.5rem" }} className="playfair">
             <span style={{ fontSize: "1.6rem", fontWeight: 700, letterSpacing: "0.05em" }}>ANLUVIA</span>
@@ -212,7 +245,7 @@ export default function AdminDashboard() {
         </div>
 
         <div style={{ borderTop: "1px solid #F4EEE8", paddingTop: "1.25rem" }}>
-          <div style={{ fontWeight: 600, fontSize: "0.85rem" }}>Dr. Matías Arancibia</div>
+          <div style={{ fontWeight: 600, fontSize: "0.85rem" }}>{especialista}</div>
           <div style={{ fontSize: "0.75rem", color: "#666" }}>Kinesiología & Estética</div>
           <a href="/" style={{ fontSize: "0.8rem", color: "#8B2434", display: "inline-block", marginTop: "0.75rem", textDecoration: "none", fontWeight: 600 }}>
             ← Salir al Sitio
@@ -225,7 +258,7 @@ export default function AdminDashboard() {
         
         {/* Pestaña: Agenda */}
         {activeTab === 'agenda' && (
-          <div>
+          <div className="no-print">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
               <div>
                 <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#7D8E7C", letterSpacing: "0.1em" }}>OPERACIONES EN VIVO</span>
@@ -279,13 +312,21 @@ export default function AdminDashboard() {
         {/* Pestaña: Fichas & Evolucion Kinesica */}
         {activeTab === 'fichas' && (
           <div>
-            <div style={{ marginBottom: "2rem" }}>
-              <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#8B2434", letterSpacing: "0.1em" }}>REGISTRO CLÍNICO OFICIAL</span>
-              <h1 className="playfair" style={{ fontSize: "2.25rem", margin: "0.25rem 0 0 0" }}>Ficha Médica & Evolución SOAP</h1>
+            <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+              <div>
+                <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#8B2434", letterSpacing: "0.1em" }}>REGISTRO CLÍNICO OFICIAL</span>
+                <h1 className="playfair" style={{ fontSize: "2.25rem", margin: "0.25rem 0 0 0" }}>Ficha Médica & Evolución SOAP</h1>
+              </div>
+
+              {selectedPacienteEmail && (
+                <button onClick={exportarPDF} className="btn-pdf">
+                  📄 Descargar Ficha en PDF
+                </button>
+              )}
             </div>
 
             {/* Selector de Paciente */}
-            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "1.5rem", marginBottom: "2rem" }}>
+            <div className="no-print" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "1.5rem", marginBottom: "2rem" }}>
               <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#666", marginBottom: "0.5rem" }}>
                 Seleccionar Paciente para la Sesión:
               </label>
@@ -308,120 +349,167 @@ export default function AdminDashboard() {
             </div>
 
             {selectedPacienteEmail ? (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem" }}>
-                
-                {/* Formulario Nueva Evolucion */}
-                <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
-                  <h3 className="playfair" style={{ fontSize: "1.3rem", marginTop: 0, color: "#8B2434" }}>
-                    + Registrar Nueva Evolución (Sesión #{numSesion})
-                  </h3>
+              <div>
+                {/* Formulario de Entrada (Oculto en Impresión) */}
+                <div className="no-print" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", marginBottom: "2rem" }}>
+                  <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
+                    <h3 className="playfair" style={{ fontSize: "1.3rem", marginTop: 0, color: "#8B2434" }}>
+                      + Registrar Nueva Evolución (Sesión #{numSesion})
+                    </h3>
 
-                  {mensajeFicha && (
-                    <div style={{ padding: "0.75rem", backgroundColor: "#F4EEE8", borderRadius: "10px", color: "#7D8E7C", fontWeight: 600, fontSize: "0.85rem", marginBottom: "1rem" }}>
-                      {mensajeFicha}
-                    </div>
-                  )}
+                    {mensajeFicha && (
+                      <div style={{ padding: "0.75rem", backgroundColor: "#F4EEE8", borderRadius: "10px", color: "#7D8E7C", fontWeight: 600, fontSize: "0.85rem", marginBottom: "1rem" }}>
+                        {mensajeFicha}
+                      </div>
+                    )}
 
-                  <form onSubmit={guardarEvolucion} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                    <div>
-                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
-                        Escala de Dolor EVA (0 al 10): <strong>{evaDolor} / 10</strong>
-                      </label>
-                      <input
-                        type="range"
-                        min="0"
-                        max="10"
-                        value={evaDolor}
-                        onChange={(e) => setEvaDolor(Number(e.target.value))}
-                        style={{ width: "100%", accentColor: "#8B2434" }}
-                      />
-                    </div>
+                    <form onSubmit={guardarEvolucion} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                      <div>
+                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
+                          Escala de Dolor EVA (0 al 10): <strong>{evaDolor} / 10</strong>
+                        </label>
+                        <input type="range" min="0" max="10" value={evaDolor} onChange={(e) => setEvaDolor(Number(e.target.value))} style={{ width: "100%", accentColor: "#8B2434" }} />
+                      </div>
 
-                    <div>
-                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
-                        Subjetivo (Relato del paciente):
-                      </label>
-                      <textarea
-                        placeholder="Ej. Refiere disminución del dolor articular tras última sesión..."
-                        value={subjetivo}
-                        onChange={(e) => setSubjetivo(e.target.value)}
-                        className="textarea-anluvia"
-                      />
-                    </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Subjetivo (Sintomatología):</label>
+                        <textarea placeholder="Ej. Refiere molestia lumbar al flexionar..." value={subjetivo} onChange={(e) => setSubjetivo(e.target.value)} className="textarea-anluvia" />
+                      </div>
 
-                    <div>
-                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
-                        Objetivo (Evaluación física):
-                      </label>
-                      <textarea
-                        placeholder="Ej. Rango de flexión recuperado a 110°. Sensibilidad normal..."
-                        value={objetivo}
-                        onChange={(e) => setObjetivo(e.target.value)}
-                        className="textarea-anluvia"
-                      />
-                    </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Objetivo (Evaluación Física):</label>
+                        <textarea placeholder="Ej. Palpación muscular rígida en zona L4-L5..." value={objetivo} onChange={(e) => setObjetivo(e.target.value)} className="textarea-anluvia" />
+                      </div>
 
-                    <div>
-                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
-                        Tratamiento Aplicado:
-                      </label>
-                      <textarea
-                        placeholder="Ej. Terapia manual, ultrasonido, reeducación motora..."
-                        value={tratamiento}
-                        onChange={(e) => setTratamiento(e.target.value)}
-                        className="textarea-anluvia"
-                      />
-                    </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Tratamiento Aplicado:</label>
+                        <textarea placeholder="Ej. Terapia manual, masoterapia, ultrasonido..." value={tratamiento} onChange={(e) => setTratamiento(e.target.value)} className="textarea-anluvia" />
+                      </div>
 
-                    <div>
-                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>
-                        Indicaciones para el Hogar:
-                      </label>
-                      <textarea
-                        placeholder="Ej. Ejercicios de movilidad 2 veces al día. Crioterapia por 15 min..."
-                        value={indicaciones}
-                        onChange={(e) => setIndicaciones(e.target.value)}
-                        className="textarea-anluvia"
-                      />
-                    </div>
+                      <div>
+                        <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Indicaciones para el Hogar:</label>
+                        <textarea placeholder="Ej. Crioterapia 15 min por 3 días..." value={indicaciones} onChange={(e) => setIndicaciones(e.target.value)} className="textarea-anluvia" />
+                      </div>
 
-                    <button type="submit" disabled={guardandoEvolucion} className="btn-salvia" style={{ width: "100%", padding: "0.85rem", marginTop: "0.5rem" }}>
-                      {guardandoEvolucion ? "Guardando..." : "💾 Guardar Evolución Kinésica"}
-                    </button>
-                  </form>
+                      <button type="submit" disabled={guardandoEvolucion} className="btn-salvia" style={{ width: "100%", padding: "0.85rem" }}>
+                        {guardandoEvolucion ? "Guardando..." : "💾 Guardar Evolución Kinésica"}
+                      </button>
+                    </form>
+                  </div>
+
+                  <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
+                    <h3 className="playfair" style={{ fontSize: "1.3rem", marginTop: 0, color: "#7D8E7C" }}>
+                      Historial Clínico: {selectedPacienteNombre}
+                    </h3>
+                    {evolucionesPacienteActual.length > 0 ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxHeight: "500px", overflowY: "auto" }}>
+                        {evolucionesPacienteActual.map((evo) => (
+                          <div key={evo.id} style={{ border: "1px solid #F4EEE8", borderRadius: "12px", padding: "1rem", backgroundColor: "#FBF9F6" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
+                              <span style={{ fontWeight: 700, color: "#8B2434" }}>Sesión #{evo.numero_sesion}</span>
+                              <span style={{ fontSize: "0.8rem", color: "#666" }}>{new Date(evo.created_at).toLocaleDateString()}</span>
+                            </div>
+                            <div style={{ fontSize: "0.85rem" }}><strong>Dolor EVA:</strong> {evo.eva_dolor}/10</div>
+                            {evo.tratamiento && <div style={{ fontSize: "0.85rem", color: "#4A4A4A" }}><strong>Tratamiento:</strong> {evo.tratamiento}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p style={{ color: "#666", fontSize: "0.9rem" }}>No hay registros previos.</p>
+                    )}
+                  </div>
                 </div>
 
-                {/* Historial de Evoluciones del Paciente */}
-                <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem" }}>
-                  <h3 className="playfair" style={{ fontSize: "1.3rem", marginTop: 0, color: "#7D8E7C" }}>
-                    Historial Clínico: {selectedPacienteNombre}
+                {/* --- PLANTILLA OFICIAL DE DOCUMENTO PDF (VISIBLE EN PANTALLA E IMPRESIÓN) --- */}
+                <div id="area-pdf-oficial" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "2px solid #7D8E7C", padding: "3rem", boxShadow: "0 10px 30px rgba(0,0,0,0.05)" }}>
+                  
+                  {/* Membrete Clinico */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #8B2434", paddingBottom: "1.5rem", marginBottom: "2rem" }}>
+                    <div>
+                      <h1 className="playfair" style={{ fontSize: "2rem", margin: 0, color: "#1F1F1F", letterSpacing: "0.05em" }}>ANLUVIA</h1>
+                      <div style={{ fontSize: "0.75rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8B2434", fontWeight: 700 }}>
+                        Clinique & Wellness
+                      </div>
+                      <div style={{ fontSize: "0.8rem", color: "#666", marginTop: "0.25rem" }}>
+                        Av. Las Condes #12345, Of. 602 — Santiago, Chile
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: "1rem", fontWeight: 700, color: "#7D8E7C" }}>INFORME DE EVOLUCIÓN CLÍNICA</div>
+                      <div style={{ fontSize: "0.85rem", color: "#666" }}>Fecha Emisión: {new Date().toLocaleDateString()}</div>
+                    </div>
+                  </div>
+
+                  {/* Ficha Paciente */}
+                  <div style={{ backgroundColor: "#F4EEE8", borderRadius: "12px", padding: "1.25rem 1.5rem", marginBottom: "2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                    <div>
+                      <span style={{ fontSize: "0.75rem", color: "#8B2434", fontWeight: 700, letterSpacing: "0.1em" }}>DATOS DEL PACIENTE</span>
+                      <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.2rem" }}>{selectedPacienteNombre}</div>
+                      <div style={{ fontSize: "0.85rem", color: "#555" }}>{selectedPacienteEmail}</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <span style={{ fontSize: "0.75rem", color: "#7D8E7C", fontWeight: 700, letterSpacing: "0.1em" }}>ESPECIALISTA TRATANTE</span>
+                      <div style={{ fontSize: "1rem", fontWeight: 700, color: "#1F1F1F", marginTop: "0.2rem" }}>{especialista}</div>
+                      <div style={{ fontSize: "0.85rem", color: "#555" }}>Kinesiología & Rehabilitación</div>
+                    </div>
+                  </div>
+
+                  {/* Registro SOAP Detallado */}
+                  <h3 className="playfair" style={{ fontSize: "1.25rem", color: "#8B2434", marginBottom: "1rem" }}>
+                    Historial de Sesiones Registradas ({evolucionesPacienteActual.length})
                   </h3>
 
-                  {evoluciones.filter(e => e.paciente_email === selectedPacienteEmail).length > 0 ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxHeight: "600px", overflowY: "auto" }}>
-                      {evoluciones.filter(e => e.paciente_email === selectedPacienteEmail).map((evo) => (
-                        <div key={evo.id} style={{ border: "1px solid #F4EEE8", borderRadius: "12px", padding: "1.25rem", backgroundColor: "#FBF9F6" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
-                            <span style={{ fontWeight: 700, color: "#8B2434" }}>Sesión #{evo.numero_sesion}</span>
-                            <span style={{ fontSize: "0.8rem", color: "#666" }}>{new Date(evo.created_at).toLocaleDateString()}</span>
+                  {evolucionesPacienteActual.length > 0 ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                      {evolucionesPacienteActual.map((evo) => (
+                        <div key={evo.id} style={{ border: "1px solid #A7B7A5", borderRadius: "12px", padding: "1.25rem", backgroundColor: "#FFF" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px dashed #A7B7A5", paddingBottom: "0.5rem", marginBottom: "0.75rem" }}>
+                            <span style={{ fontWeight: 700, color: "#8B2434", fontSize: "1rem" }}>
+                              Sesión #{evo.numero_sesion}
+                            </span>
+                            <span style={{ fontSize: "0.85rem", color: "#666" }}>
+                              Fecha: {new Date(evo.created_at).toLocaleDateString()} | EVA Dolor: <strong>{evo.eva_dolor}/10</strong>
+                            </span>
                           </div>
-                          <div style={{ fontSize: "0.85rem", marginBottom: "0.5rem" }}>
-                            <strong>Dolor EVA:</strong> {evo.eva_dolor} / 10 | <strong>Atendido por:</strong> {evo.especialista}
+
+                          <div style={{ display: "grid", gap: "0.5rem", fontSize: "0.9rem", color: "#333" }}>
+                            {evo.subjetivo && <div><strong>S (Subjetivo):</strong> {evo.subjetivo}</div>}
+                            {evo.objetivo && <div><strong>O (Objetivo):</strong> {evo.objetivo}</div>}
+                            {evo.tratamiento && <div><strong>A/P (Tratamiento):</strong> {evo.tratamiento}</div>}
+                            {evo.indicaciones && (
+                              <div style={{ backgroundColor: "#FBF9F6", padding: "0.5rem 0.75rem", borderRadius: "8px", borderLeft: "3px solid #7D8E7C", marginTop: "0.25rem" }}>
+                                <strong>Indicaciones:</strong> {evo.indicaciones}
+                              </div>
+                            )}
                           </div>
-                          {evo.tratamiento && <div style={{ fontSize: "0.85rem", color: "#4A4A4A" }}><strong>Tratamiento:</strong> {evo.tratamiento}</div>}
-                          {evo.indicaciones && <div style={{ fontSize: "0.85rem", color: "#7D8E7C", marginTop: "0.25rem" }}><strong>Indicaciones:</strong> {evo.indicaciones}</div>}
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p style={{ color: "#666", fontSize: "0.9rem" }}>No hay registros previas para este paciente.</p>
+                    <p style={{ color: "#666", fontSize: "0.9rem" }}>Sin evoluciones registradas aún para este paciente.</p>
                   )}
+
+                  {/* Pie de Firma Oficial */}
+                  <div style={{ marginTop: "4rem", paddingTop: "2rem", borderTop: "1px solid #ddd", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                    <div style={{ fontSize: "0.75rem", color: "#888" }}>
+                      Documento generado electrónicamente por ANLUVIA Ecosistema Clínico.<br>
+                      Código de Validación Interna: {selectedPacienteEmail.substring(0, 5)}-{Date.now().toString().substring(6)}
+                    </div>
+
+                    <div style={{ textCenter: "center", width: "220px", textAlign: "center" }}>
+                      <div style={{ borderBottom: "1px solid #000", marginBottom: "0.5rem" }}></div>
+                      <div style={{ fontSize: "0.85rem", fontWeight: 700 }}>Firma del Especialista</div>
+                      <div style={{ fontSize: "0.75rem", color: "#666" }}>{especialista}</div>
+                    </div>
+                  </div>
+
                 </div>
 
               </div>
             ) : (
-              <div style={{ textAlign: "center", padding: "4rem", backgroundColor: "#FFF", borderRadius: "20px", border: "1px dashed #A7B7A5" }}>
-                <p style={{ color: "#666" }}>Selecciona un paciente del menú superior para abrir su Ficha Médica.</p>
+              <div className="no-print" style={{ textAlign: "center", padding: "4rem", backgroundColor: "#FFF", borderRadius: "20px", border: "1px dashed #A7B7A5" }}>
+                <p style={{ color: "#666" }}>Selecciona un paciente del menú superior para abrir o exportar su Ficha Médica.</p>
               </div>
             )}
           </div>
