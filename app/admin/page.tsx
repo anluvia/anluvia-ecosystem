@@ -15,7 +15,6 @@ interface UsuarioEquipo {
 }
 
 export default function AdminDashboard() {
-  // ESTADOS DE SESIÓN Y USUARIO ACTIVO
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<UsuarioEquipo | null>(null);
   const [inputPassword, setInputPassword] = useState("");
@@ -31,7 +30,7 @@ export default function AdminDashboard() {
   const [usuarios, setUsuarios] = useState<UsuarioEquipo[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Formulario Crear Miembro de Equipo
+  // Formulario Crear Miembro
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevoEmail, setNuevoEmail] = useState("");
   const [nuevaClave, setNuevaClave] = useState("");
@@ -84,7 +83,6 @@ export default function AdminDashboard() {
     'Masoterapia & Bienestar Integral': 40000,
   };
 
-  // Usuarios base iniciales si no existen
   const usuariosBaseIniciales: UsuarioEquipo[] = [
     { id: '1', nombre: 'Dr. Matías Arancibia', email: 'director@anluvia.cl', clave: 'anluvia2026', roles: ['admin', 'especialista'] },
     { id: '2', nombre: 'Kinesiólogo Tratante', email: 'kine@anluvia.cl', clave: 'kine2026', roles: ['especialista'] },
@@ -93,7 +91,6 @@ export default function AdminDashboard() {
   ];
 
   useEffect(() => {
-    // Cargar Lista de Usuarios
     const localUsers = localStorage.getItem("anluvia_equipo_users");
     let userList: UsuarioEquipo[] = [];
     if (localUsers) {
@@ -104,7 +101,6 @@ export default function AdminDashboard() {
     }
     setUsuarios(userList);
 
-    // Cargar Sesión Activa
     const savedUserJson = localStorage.getItem("anluvia_active_user");
     if (savedUserJson) {
       const activeUser = JSON.parse(savedUserJson);
@@ -135,7 +131,7 @@ export default function AdminDashboard() {
       establecerTabInicial(userFound.roles);
       cargarDatos();
     } else {
-      setLoginError("🔑 Clave no reconocida. Por favor verifica tus credenciales.");
+      setLoginError("🔑 Clave no reconocida. Verifica tus credenciales.");
     }
   };
 
@@ -172,7 +168,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // CREAR O ACTUALIZAR USUARIO
   const handleCrearUsuario = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevoNombre || !nuevaClave || rolesSeleccionados.length === 0) return;
@@ -189,7 +184,7 @@ export default function AdminDashboard() {
     setUsuarios(actualizados);
     localStorage.setItem("anluvia_equipo_users", JSON.stringify(actualizados));
 
-    setMensajeUsuario(`✅ Usuario "${nuevoNombre}" creado con éxito con ${rolesSeleccionados.length} rol(es).`);
+    setMensajeUsuario(`✅ Usuario "${nuevoNombre}" registrado.`);
     setNuevoNombre("");
     setNuevoEmail("");
     setNuevaClave("");
@@ -197,10 +192,7 @@ export default function AdminDashboard() {
   };
 
   const eliminarUsuario = (id: string) => {
-    if (usuarios.length <= 1) {
-      alert("Debe haber al menos un usuario administrador.");
-      return;
-    }
+    if (usuarios.length <= 1) return alert("Debe existir al menos un administrador.");
     const filtrados = usuarios.filter(u => u.id !== id);
     setUsuarios(filtrados);
     localStorage.setItem("anluvia_equipo_users", JSON.stringify(filtrados));
@@ -275,7 +267,7 @@ export default function AdminDashboard() {
       const { error } = await supabase.from("evoluciones").insert([{ paciente_email: selectedPacienteEmail, paciente_nombre: selectedPacienteNombre, especialista: currentUser?.nombre || "Especialista ANLUVIA", numero_sesion: numSesion, eva_dolor: evaDolor, subjetivo, objetivo, tratamiento, indicaciones }]);
       if (error) setMensajeFicha("⚠️ " + error.message);
       else {
-        setMensajeFicha("🎉 ¡Evolución registrada correctamente!");
+        setMensajeFicha("🎉 ¡Evolución registrada!");
         setSubjetivo(""); setObjetivo(""); setTratamiento(""); setIndicaciones("");
         cargarDatos();
       }
@@ -312,12 +304,12 @@ export default function AdminDashboard() {
     const actualizados = [nuevoBlog, ...blogs];
     setBlogs(actualizados);
     localStorage.setItem("anluvia_blogs", JSON.stringify(actualizados));
-    setMensajeBlog("✅ Artículo de Blog publicado."); setBlogTitulo(""); setBlogContenido("");
+    setMensajeBlog("✅ Artículo publicado."); setBlogTitulo(""); setBlogContenido("");
   };
 
   const exportarPDF = () => { if (!selectedPacienteEmail) return alert("Selecciona un paciente primero."); window.print(); };
 
-  // CÁLCULOS FINANCIEROS
+  // CÁLCULOS
   const totalCitas = reservas.length;
   const pacientesUnicos = Array.from(new Set(reservas.map((r) => r.paciente_email))).map((email) => {
     const reserva = reservas.find((r) => r.paciente_email === email);
@@ -336,7 +328,6 @@ export default function AdminDashboard() {
 
   const evolucionesPacienteActual = evoluciones.filter((e) => e.paciente_email === selectedPacienteEmail);
 
-  // --- LOGIN ---
   if (!isAuthenticated) {
     return (
       <div style={{ backgroundColor: "#FBF9F6", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "sans-serif" }}>
@@ -373,10 +364,10 @@ export default function AdminDashboard() {
           </form>
 
           <div style={{ marginTop: "2rem", paddingTop: "1.5rem", borderTop: "1px solid #F4EEE8", fontSize: "0.75rem", color: "#666", textAlign: "left", lineHeight: "1.6" }}>
-            🔐 <strong>Claves iniciales por perfil:</strong><br />
+            🔐 <strong>Claves iniciales:</strong><br />
             • Admin Director: <code>anluvia2026</code><br />
-            • Especialista Kinesiología: <code>kine2026</code><br />
-            • Recepción / Caja: <code>recepcion2026</code><br />
+            • Especialista Kinesiólogo: <code>kine2026</code><br />
+            • Recepción: <code>recepcion2026</code><br />
             • Editor Web: <code>editor2026</code>
           </div>
         </div>
@@ -384,29 +375,25 @@ export default function AdminDashboard() {
     );
   }
 
-  // --- PANEL SEGÚN ROLES COMBINADOS ---
   return (
     <div style={{ backgroundColor: "#FBF9F6", color: "#1F1F1F", fontFamily: "sans-serif", minHeight: "100vh", display: "flex" }}>
-      
-      {/* Sidebar Personalizada */}
       <aside className="no-print" style={{ width: "260px", borderRight: "1px solid #F4EEE8", backgroundColor: "#FFFFFF", padding: "2rem 1.5rem", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
         <div>
           <div style={{ marginBottom: "2rem" }}>
-            <span style={{ fontSize: "1.6rem", fontWeight 700, letterSpacing: "0.05em", fontFamily: "serif" }}>ANLUVIA</span>
+            <span style={{ fontSize: "1.6rem", fontWeight: 700, letterSpacing: "0.05em", fontFamily: "serif" }}>ANLUVIA</span>
             <div style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#8B2434", fontWeight: 700, marginTop: "0.2rem" }}>
               ROLES: {currentUser?.roles.join(" + ").toUpperCase()}
             </div>
           </div>
 
           <nav style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
-            {/* OPCIONES DE ADMIN */}
             {hasRole('admin') && (
               <>
                 <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'dashboard' ? 700 : 500, backgroundColor: activeTab === 'dashboard' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('dashboard')}>
                   📊 Dashboard & Métricas
                 </div>
                 <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'equipo' ? 700 : 500, backgroundColor: activeTab === 'equipo' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('equipo')}>
-                  👥 Gestión de Equipo & Roles
+                  👥 Gestión Equipo & Roles
                 </div>
                 <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'marketing' ? 700 : 500, backgroundColor: activeTab === 'marketing' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('marketing')}>
                   📣 Marketing & ROI Ads
@@ -417,28 +404,24 @@ export default function AdminDashboard() {
               </>
             )}
 
-            {/* OPCIONES DE RECEPCION O ADMIN */}
             {(hasRole('admin') || hasRole('recepcion')) && (
               <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'ventas' ? 700 : 500, backgroundColor: activeTab === 'ventas' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('ventas')}>
                 🧾 Caja & Facturación SII
               </div>
             )}
 
-            {/* OPCIONES DE ESPECIALISTA O ADMIN */}
             {(hasRole('admin') || hasRole('especialista')) && (
               <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'fichas' ? 700 : 500, backgroundColor: activeTab === 'fichas' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('fichas')}>
                 🩺 Fichas Kinésicas (SOAP)
               </div>
             )}
 
-            {/* OPCIONES DE EDITOR O ADMIN */}
             {(hasRole('admin') || hasRole('editor')) && (
               <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'contenido' ? 700 : 500, backgroundColor: activeTab === 'contenido' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('contenido')}>
                 ✍️ Contenido & Blog (CMS)
               </div>
             )}
 
-            {/* AGENDA GENERAL (TODOS) */}
             <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'agenda' ? 700 : 500, backgroundColor: activeTab === 'agenda' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('agenda')}>
               📅 Agenda & Citas ({reservas.length})
             </div>
@@ -454,10 +437,7 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      {/* Área de Trabajo */}
       <main style={{ flex: 1, padding: "2.5rem 3rem", overflowY: "auto" }}>
-
-        {/* DASHBOARD (ADMIN) */}
         {activeTab === 'dashboard' && hasRole('admin') && (
           <div className="no-print">
             <h1 style={{ fontSize: "2.25rem", margin: "0 0 2rem 0", fontFamily: "serif" }}>Indicadores de Negocio</h1>
@@ -467,103 +447,83 @@ export default function AdminDashboard() {
                 <div style={{ fontSize: "1.8rem", fontWeight: 700, marginTop: "0.3rem" }}>${ingresosBrutos.toLocaleString('es-CL')} CLP</div>
               </div>
               <div style={{ backgroundColor: "#FFF", padding: "1.5rem", borderRadius: "20px", border: "1px solid #E2E8F0" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#8B2434", textTransform: "uppercase" }}>Gastos</span>
-                <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#8B2434", marginTop: "0.3rem" }}>${egresosTotales.toLocaleString('es-CL')} CLP</div>
+                <span style={{ fontSize: "0.75rem", fontWeight 700, color: "#8B2434", textTransform: "uppercase" }}>Gastos</span>
+                <div style={{ fontSize: "1.8rem", fontWeight 700, color: "#8B2434", marginTop: "0.3rem" }}>${egresosTotales.toLocaleString('es-CL')} CLP</div>
               </div>
               <div style={{ backgroundColor: "#FFF", padding: "1.5rem", borderRadius: "20px", border: "1px solid #E2E8F0" }}>
                 <span style={{ fontSize: "0.75rem", fontWeight 700, color: "#137333", textTransform: "uppercase" }}>Ganancia Neta</span>
-                <div style={{ fontSize: "1.8rem", fontWeight: 700, color: gananciaNeta >= 0 ? "#137333" : "#D93025", marginTop: "0.3rem" }}>${gananciaNeta.toLocaleString('es-CL')} CLP</div>
+                <div style={{ fontSize: "1.8rem", fontWeight 700, color: gananciaNeta >= 0 ? "#137333" : "#D93025", marginTop: "0.3rem" }}>${gananciaNeta.toLocaleString('es-CL')} CLP</div>
               </div>
               <div style={{ backgroundColor: "#FFF", padding: "1.5rem", borderRadius: "20px", border: "1px solid #E2E8F0" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#7D8E7C", textTransform: "uppercase" }}>Margen</span>
-                <div style={{ fontSize: "1.8rem", fontWeight: 700, marginTop: "0.3rem" }}>{margenRentabilidad}%</div>
+                <span style={{ fontSize: "0.75rem", fontWeight 700, color: "#7D8E7C", textTransform: "uppercase" }}>Margen</span>
+                <div style={{ fontSize: "1.8rem", fontWeight 700, marginTop: "0.3rem" }}>{margenRentabilidad}%</div>
               </div>
             </div>
           </div>
         )}
 
-        {/* NUEVA PESTAÑA: GESTIÓN DE EQUIPO & ROLES (SOLO ADMIN) */}
         {activeTab === 'equipo' && hasRole('admin') && (
           <div className="no-print">
-            <h1 style={{ fontSize: "2.25rem", margin: "0 0 2rem 0", fontFamily: "serif" }}>Gestión de Equipo & Roles de Acceso</h1>
-
+            <h1 style={{ fontSize: "2.25rem", margin: "0 0 2rem 0", fontFamily: "serif" }}>Gestión de Equipo & Multirroles</h1>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "2rem" }}>
-              {/* Formulario Crear / Asignar Usuario */}
               <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid #E2E8F0", padding: "2rem" }}>
-                <h3 style={{ fontSize: "1.3rem", marginTop: 0, color: "#8B2434", fontFamily: "serif" }}>+ Agregar Nuevo Integrante</h3>
-
-                {mensajeUsuario && (
-                  <div style={{ padding: "0.75rem", backgroundColor: "#F4EEE8", borderRadius: "10px", color: "#7D8E7C", fontWeight: 600, fontSize: "0.85rem", marginBottom: "1rem" }}>
-                    {mensajeUsuario}
-                  </div>
-                )}
-
+                <h3 style={{ fontSize: "1.3rem", marginTop: 0, color: "#8B2434", fontFamily: "serif" }}>+ Agregar Integrante</h3>
+                {mensajeUsuario && <div style={{ padding: "0.75rem", backgroundColor: "#F4EEE8", borderRadius: "10px", color: "#7D8E7C", fontWeight: 600, fontSize: "0.85rem", marginBottom: "1rem" }}>{mensajeUsuario}</div>}
                 <form onSubmit={handleCrearUsuario} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                   <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Nombre Completo *</label>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666" }}>Nombre Completo *</label>
                     <input type="text" placeholder="Ej. Dra. Camila Morales" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid #ccc" }} required />
                   </div>
-
                   <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight 600, color: "#666", marginBottom: "0.3rem" }}>Correo Electrónico</label>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666" }}>Email</label>
                     <input type="email" placeholder="camila@anluvia.cl" value={nuevoEmail} onChange={(e) => setNuevoEmail(e.target.value)} style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid #ccc" }} />
                   </div>
-
                   <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Clave Privada de Acceso *</label>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight 600, color: "#666" }}>Clave Privada *</label>
                     <input type="text" placeholder="Ej. camila2026" value={nuevaClave} onChange={(e) => setNuevaClave(e.target.value)} style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid #ccc" }} required />
                   </div>
-
                   <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.5rem" }}>Asignar Rol(es) Permitidos *</label>
+                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.5rem" }}>Asignar Rol(es) *</label>
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", backgroundColor: "#FBF9F6", padding: "0.85rem", borderRadius: "10px", border: "1px solid #E2E8F0" }}>
                       <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem" }}>
                         <input type="checkbox" checked={rolesSeleccionados.includes('especialista')} onChange={() => toggleRolCheck('especialista')} />
-                        🩺 Kinesiología / Especialista (Fichas SOAP)
+                        🩺 Kinesiología / Especialista
                       </label>
                       <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem" }}>
                         <input type="checkbox" checked={rolesSeleccionados.includes('recepcion')} onChange={() => toggleRolCheck('recepcion')} />
-                        📋 Recepción & Caja (Facturación SII / Agenda)
+                        📋 Recepción & Caja
                       </label>
                       <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem" }}>
                         <input type="checkbox" checked={rolesSeleccionados.includes('editor')} onChange={() => toggleRolCheck('editor')} />
-                        ✍️ Editor Web / Marketing (Blog CMS)
+                        ✍️ Editor Web / CMS
                       </label>
                       <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem", color: "#8B2434", fontWeight: 700 }}>
                         <input type="checkbox" checked={rolesSeleccionados.includes('admin')} onChange={() => toggleRolCheck('admin')} />
-                        👑 Director / Admin (Acceso Total Finanzas)
+                        👑 Director / Admin
                       </label>
                     </div>
                   </div>
-
-                  <button type="submit" style={{ width: "100%", backgroundColor: "#7D8E7C", color: "#FFF", padding: "0.85rem", borderRadius: "9999px", border: "none", fontWeight: 600, cursor: "pointer", marginTop: "0.5rem" }}>
-                    👤 Guardar Nuevo Integrante
-                  </button>
+                  <button type="submit" style={{ width: "100%", backgroundColor: "#7D8E7C", color: "#FFF", padding: "0.85rem", borderRadius: "9999px", border: "none", fontWeight: 600, cursor: "pointer" }}>👤 Guardar Integrante</button>
                 </form>
               </div>
 
-              {/* Tabla de Usuarios Activos */}
               <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid #E2E8F0", padding: "2rem" }}>
                 <h3 style={{ fontSize: "1.3rem", marginTop: 0, color: "#1F1F1F", marginBottom: "1.5rem", fontFamily: "serif" }}>
-                  Personal del Equipo & Credenciales ({usuarios.length})
+                  Integrantes del Equipo ({usuarios.length})
                 </h3>
-
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
                   <thead>
                     <tr style={{ backgroundColor: "#F4EEE8" }}>
                       <th style={{ padding: "0.75rem", textAlign: "left" }}>Nombre</th>
                       <th style={{ padding: "0.75rem", textAlign: "left" }}>Clave</th>
-                      <th style={{ padding: "0.75rem", textAlign: "left" }}>Roles Asignados</th>
+                      <th style={{ padding: "0.75rem", textAlign: "left" }}>Roles</th>
                       <th style={{ padding: "0.75rem", textAlign: "left" }}>Acción</th>
                     </tr>
                   </thead>
                   <tbody>
                     {usuarios.map((u) => (
                       <tr key={u.id} style={{ borderBottom: "1px solid #F4EEE8" }}>
-                        <td style={{ padding: "0.75rem" }}>
-                          <div style={{ fontWeight: 700 }}>{u.nombre}</div>
-                          <div style={{ fontSize: "0.75rem", color: "#666" }}>{u.email}</div>
-                        </td>
+                        <td style={{ padding: "0.75rem" }}><strong>{u.nombre}</strong><div style={{ fontSize: "0.75rem", color: "#666" }}>{u.email}</div></td>
                         <td style={{ padding: "0.75rem" }}><code style={{ backgroundColor: "#F4EEE8", padding: "0.2rem 0.5rem", borderRadius: "6px" }}>{u.clave}</code></td>
                         <td style={{ padding: "0.75rem" }}>
                           <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap" }}>
@@ -575,7 +535,7 @@ export default function AdminDashboard() {
                           </div>
                         </td>
                         <td style={{ padding: "0.75rem" }}>
-                          <button onClick={() => eliminarUsuario(u.id)} style={{ background: "none", border: "none", color: "#D93025", cursor: "pointer", fontWeight: 600 }}>🗑️</button>
+                          <button onClick={() => eliminarUsuario(u.id)} style={{ background: "none", border: "none", color: "#D93025", cursor: "pointer" }}>🗑️</button>
                         </td>
                       </tr>
                     ))}
@@ -586,66 +546,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* FICHAS MÉDICAS (ESPECIALISTA Y ADMIN) */}
-        {activeTab === 'fichas' && (hasRole('admin') || hasRole('especialista')) && (
-          <div>
-            <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
-              <h1 style={{ fontSize: "2.25rem", margin: 0, fontFamily: "serif" }}>Ficha Médica & Evolución SOAP</h1>
-              <button onClick={exportarPDF} disabled={!selectedPacienteEmail} style={{ backgroundColor: "#8B2434", color: "#FFF", padding: "0.75rem 1.5rem", borderRadius: "9999px", border: "none", fontWeight: 700, cursor: "pointer", opacity: !selectedPacienteEmail ? 0.5 : 1 }}>
-                📄 Descargar Ficha PDF
-              </button>
-            </div>
-
-            <div className="no-print" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid #E2E8F0", padding: "1.5rem", marginBottom: "2rem" }}>
-              <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#666", marginBottom: "0.5rem" }}>Seleccionar Paciente Atendido:</label>
-              <select value={selectedPacienteEmail} onChange={(e) => {
-                const email = e.target.value;
-                const p = pacientesUnicos.find((item) => item.email === email);
-                if (p) seleccionarParaFicha(p.email, p.nombre);
-              }} style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid #ccc" }}>
-                <option value="">-- Selecciona un Paciente --</option>
-                {pacientesUnicos.map((p) => (
-                  <option key={p.email} value={p.email}>{p.nombre} ({p.email})</option>
-                ))}
-              </select>
-            </div>
-
-            {selectedPacienteEmail ? (
-              <div className="no-print" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem" }}>
-                <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid #E2E8F0", padding: "2rem" }}>
-                  <h3 style={{ fontSize: "1.3rem", marginTop: 0, color: "#8B2434", fontFamily: "serif" }}>+ Registrar Nueva Evolución (Sesión #{numSesion})</h3>
-                  {mensajeFicha && <div style={{ padding: "0.75rem", backgroundColor: "#F4EEE8", borderRadius: "10px", color: "#7D8E7C", fontWeight: 600, fontSize: "0.85rem", marginBottom: "1rem" }}>{mensajeFicha}</div>}
-                  <form onSubmit={guardarEvolucion} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                    <div>
-                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666" }}>Dolor EVA: <strong>{evaDolor}/10</strong></label>
-                      <input type="range" min="0" max="10" value={evaDolor} onChange={(e) => setEvaDolor(Number(e.target.value))} style={{ width: "100%", accentColor: "#8B2434" }} />
-                    </div>
-                    <div><label style={{ fontSize: "0.8rem", fontWeight: 600, color: "#666" }}>S (Subjetivo):</label><textarea value={subjetivo} onChange={(e) => setSubjetivo(e.target.value)} style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid #ccc" }} /></div>
-                    <div><label style={{ fontSize: "0.8rem", fontWeight: 600, color: "#666" }}>O (Objetivo):</label><textarea value={objetivo} onChange={(e) => setObjetivo(e.target.value)} style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid #ccc" }} /></div>
-                    <div><label style={{ fontSize: "0.8rem", fontWeight: 600, color: "#666" }}>A/P (Tratamiento):</label><textarea value={tratamiento} onChange={(e) => setTratamiento(e.target.value)} style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid #ccc" }} /></div>
-                    <div><label style={{ fontSize: "0.8rem", fontWeight: 600, color: "#666" }}>Indicaciones:</label><textarea value={indicaciones} onChange={(e) => setIndicaciones(e.target.value)} style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid #ccc" }} /></div>
-                    <button type="submit" disabled={guardandoEvolucion} style={{ backgroundColor: "#7D8E7C", color: "#FFF", padding: "0.85rem", borderRadius: "9999px", border: "none", fontWeight: 600, cursor: "pointer" }}>Guardar Evolución Kinésica</button>
-                  </form>
-                </div>
-                <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid #E2E8F0", padding: "2rem" }}>
-                  <h3 style={{ fontSize: "1.3rem", marginTop: 0, color: "#7D8E7C", fontFamily: "serif" }}>Historial: {selectedPacienteNombre}</h3>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxHeight: "450px", overflowY: "auto" }}>
-                    {evolucionesPacienteActual.map((evo) => (
-                      <div key={evo.id} style={{ border: "1px solid #F4EEE8", borderRadius: "12px", padding: "1rem", backgroundColor: "#FBF9F6" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontWeight: 700, color: "#8B2434" }}>Sesión #{evo.numero_sesion}</span><span>EVA: {evo.eva_dolor}/10</span></div>
-                        <div style={{ fontSize: "0.85rem", color: "#4A4A4A", marginTop: "0.3rem" }}>{evo.tratamiento}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <p style={{ color: "#666", textAlign: "center", padding: "3rem" }}>Selecciona un paciente del menú superior.</p>
-            )}
-          </div>
-        )}
-
-        {/* AGENDA GENERAL (TODOS) */}
+        {/* AGENDA GENERAL */}
         {activeTab === 'agenda' && (
           <div className="no-print">
             <h1 style={{ fontSize: "2.25rem", margin: "0 0 2rem 0", fontFamily: "serif" }}>Agenda Operativa</h1>
@@ -673,7 +574,6 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
-
       </main>
     </div>
   );
