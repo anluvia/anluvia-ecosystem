@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { WHATSAPP_CLINICA_NUMERO } from '@/lib/whatsapp';
+import { WHATSAPP_CLINICA_NUMERO } from '../lib/whatsapp';
 
 export default function WhatsAppWidget() {
   const mensajeDefault = encodeURIComponent("¡Hola ANLUVIA Clinique! ✨ Quisiera consultar por información y disponibilidad de tratamientos.");

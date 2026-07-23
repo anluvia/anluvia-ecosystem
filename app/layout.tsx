@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
-import WhatsAppWidget from "@/components/WhatsAppWidget";
+import WhatsAppWidget from "../components/WhatsAppWidget";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -10,7 +10,6 @@ const inter = Inter({
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
-  variable: "--font-playfair",
 });
 
 export const metadata: Metadata = {
