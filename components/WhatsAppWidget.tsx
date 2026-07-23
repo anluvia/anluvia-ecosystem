@@ -26,9 +26,9 @@ export default function WhatsAppWidget() {
   const colorAnluvia = "#8B2434"; // Guinda/Maroon ANLUVIA
 
   const redesSociales = [
-    { nombre: 'Instagram', url: 'https://instagram.com/anluvia.cl', Icono: IconoInstagram },
-    { nombre: 'Facebook', url: 'https://facebook.com/anluvia.cl', Icono: IconoFacebook },
-    { nombre: 'TikTok', url: 'https://tiktok.com/@anluvia.cl', Icono: IconoTikTok },
+    { nombre: 'Instagram', url: 'https://www.instagram.com/anluviacl/', Icono: IconoInstagram },
+    { nombre: 'Facebook', url: 'https://www.facebook.com/profile.php?id=61590742408865&locale=es_LA', Icono: IconoFacebook },
+    { nombre: 'TikTok', url: 'https://www.tiktok.com/@anluviacl', Icono: IconoTikTok },
   ];
 
   return (
@@ -53,11 +53,11 @@ export default function WhatsAppWidget() {
         style={{ 
           display: 'flex', 
           gap: '15px', 
-          backgroundColor: 'rgba(255, 255, 255, 0.90)', // Fondo blanco semi-transparente
+          backgroundColor: 'rgba(255, 255, 255, 0.90)',
           padding: '10px 18px', 
           borderRadius: '30px', 
           boxShadow: '0 4px 20px rgba(0,0,0,0.12)', 
-          backdropFilter: 'blur(5px)', // Efecto esmerilado elegante
+          backdropFilter: 'blur(5px)',
           border: '1px solid #F4EEE8',
           transition: 'all 0.3s ease'
         }}
@@ -95,7 +95,7 @@ export default function WhatsAppWidget() {
         target="_blank"
         rel="noopener noreferrer"
         style={{
-          backgroundColor: '#25D366', // Color oficial WhatsApp
+          backgroundColor: '#25D366',
           color: '#FFFFFF',
           borderRadius: '50px',
           padding: '12px 24px',
