@@ -12,8 +12,8 @@ export default function LoginCard({ inputPassword, setInputPassword, handleLogin
   return (
     <div style={{ backgroundColor: "#FBF9F6", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "sans-serif" }}>
       <div style={{ backgroundColor: "#FFFFFF", padding: "3rem", borderRadius: "24px", border: "1px solid #F4EEE8", width: "100%", maxWidth: "440px", textAlign: "center" }}>
-        <span style={{ fontSize: "2rem", fontWeight: 700, fontFamily: "serif", color: "#1F1F1F" }}>ANLUVIA</span>
-        <div style={{ fontSize: "0.7rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8B2434", fontWeight: 700, marginTop: "0.2rem", marginBottom: "2rem" }}>
+        <img src="/logo.png" alt="ANLUVIA" style={{ maxHeight: "80px", marginBottom: "1.5rem", objectFit: "contain" }} />
+        <div style={{ fontSize: "0.7rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8B2434", fontWeight: 700, marginBottom: "2rem" }}>
           ACCESO AL PANEL EJECUTIVO
         </div>
 
@@ -44,11 +44,11 @@ export default function LoginCard({ inputPassword, setInputPassword, handleLogin
         </form>
 
         <div style={{ marginTop: "2rem", paddingTop: "1.5rem", borderTop: "1px solid #F4EEE8", fontSize: "0.75rem", color: "#666", textAlign: "left", lineHeight: "1.6" }}>
-          🔐 <strong>Claves de acceso:</strong><br />
+          🔐 <strong>Claves iniciales:</strong><br />
           • Admin: <code>anluvia2026</code><br />
           • Kinesiología: <code>kine2026</code><br />
           • Recepción: <code>recepcion2026</code><br />
-          • Editor: <code>editor2026</code>
+          • Editor Web: <code>editor2026</code>
         </div>
       </div>
     </div>

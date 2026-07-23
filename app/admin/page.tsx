@@ -1,9 +1,15 @@
 'use client';
 
 import React, { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
 import { UsuarioEquipo, TipoRol } from "./types";
 import LoginCard from "./components/LoginCard";
+import DashboardTab from "./components/DashboardTab";
+import EquipoTab from "./components/EquipoTab";
+import VentasTab from "./components/VentasTab";
+import ComprasTab from "./components/ComprasTab";
+import FichasTab from "./components/FichasTab";
+import AgendaTab from "./components/AgendaTab";
+import PersonalizacionTab from "./components/PersonalizacionTab";
 
 const usuariosBaseIniciales: UsuarioEquipo[] = [
   { id: '1', nombre: 'Dr. Matías Arancibia', email: 'director@anluvia.cl', clave: 'anluvia2026', roles: ['admin', 'especialista'] },
@@ -17,8 +23,7 @@ export default function AdminDashboard() {
   const [currentUser, setCurrentUser] = useState<UsuarioEquipo | null>(null);
   const [inputPassword, setInputPassword] = useState("");
   const [loginError, setLoginError] = useState("");
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [reservas, setReservas] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState("personalizacion");
   const [usuarios, setUsuarios] = useState<UsuarioEquipo[]>(usuariosBaseIniciales);
 
   useEffect(() => {
@@ -45,6 +50,10 @@ export default function AdminDashboard() {
     setCurrentUser(null);
   };
 
+  const hasRole = (rol: TipoRol): boolean => {
+    return Boolean(currentUser?.roles?.includes(rol));
+  };
+
   if (!isAuthenticated) {
     return (
       <LoginCard
@@ -56,19 +65,55 @@ export default function AdminDashboard() {
     );
   }
 
+  const renderTabContent = () => {
+    if (activeTab === 'dashboard' && hasRole('admin')) return <DashboardTab />;
+    if (activeTab === 'equipo' && hasRole('admin')) return <EquipoTab />;
+    if (activeTab === 'ventas' && (hasRole('admin') || hasRole('recepcion'))) return <VentasTab />;
+    if (activeTab === 'compras' && hasRole('admin')) return <ComprasTab />;
+    if (activeTab === 'fichas' && (hasRole('admin') || hasRole('especialista'))) return <FichasTab />;
+    if (activeTab === 'agenda') return <AgendaTab />;
+    if (activeTab === 'personalizacion' && (hasRole('admin') || hasRole('editor'))) return <PersonalizacionTab />;
+    return <PersonalizacionTab />;
+  };
+
   return (
     <div style={{ backgroundColor: "#FBF9F6", color: "#1F1F1F", fontFamily: "sans-serif", minHeight: "100vh", display: "flex" }}>
       <aside style={{ width: "260px", borderRight: "1px solid #F4EEE8", backgroundColor: "#FFFFFF", padding: "2rem 1.5rem", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
         <div>
           <div style={{ marginBottom: "2rem" }}>
-            <span style={{ fontSize: "1.6rem", fontWeight: 700, fontFamily: "serif" }}>ANLUVIA</span>
-            <div style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#8B2434", fontWeight: 700, marginTop: "0.2rem" }}>
+            <img src="/logo.png" alt="ANLUVIA" style={{ maxHeight: "55px", marginBottom: "0.5rem", objectFit: "contain" }} />
+            <div style={{ fontSize: "0.65rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#8B2434", fontWeight: 700 }}>
               {currentUser?.nombre}
             </div>
           </div>
           <nav style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
-            <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: 700, backgroundColor: "#F4EEE8" }}>
-              📊 Dashboard
+            {hasRole('admin') && (
+              <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'dashboard' ? 700 : 500, backgroundColor: activeTab === 'dashboard' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('dashboard')}>
+                📊 Dashboard
+              </div>
+            )}
+            {hasRole('admin') && (
+              <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'equipo' ? 700 : 500, backgroundColor: activeTab === 'equipo' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('equipo')}>
+                👥 Gestión Equipo
+              </div>
+            )}
+            {(hasRole('admin') || hasRole('editor')) && (
+              <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'personalizacion' ? 700 : 500, backgroundColor: activeTab === 'personalizacion' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('personalizacion')}>
+                🎨 Personalización Web
+              </div>
+            )}
+            {(hasRole('admin') || hasRole('recepcion')) && (
+              <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'ventas' ? 700 : 500, backgroundColor: activeTab === 'ventas' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('ventas')}>
+                📈 Ventas & SII
+              </div>
+            )}
+            {(hasRole('admin') || hasRole('especialista')) && (
+              <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'fichas' ? 700 : 500, backgroundColor: activeTab === 'fichas' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('fichas')}>
+                🩺 Fichas Kinésicas
+              </div>
+            )}
+            <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'agenda' ? 700 : 500, backgroundColor: activeTab === 'agenda' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('agenda')}>
+              📅 Agenda & Citas
             </div>
           </nav>
         </div>
@@ -77,9 +122,8 @@ export default function AdminDashboard() {
         </button>
       </aside>
 
-      <main style={{ flex: 1, padding: "2.5rem 3rem" }}>
-        <h1 style={{ fontSize: "2.25rem", margin: "0 0 1.5rem 0", fontFamily: "serif" }}>Panel de Control ANLUVIA</h1>
-        <p>Bienvenido/a, <strong>{currentUser?.nombre}</strong>. Módulo cargado en arquitectura modular limpia.</p>
+      <main style={{ flex: 1, padding: "2.5rem 3rem", overflowY: "auto" }}>
+        {renderTabContent()}
       </main>
     </div>
   );
