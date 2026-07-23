@@ -4,10 +4,12 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { emitirBoletaSII, emitirFacturaSII } from "../../lib/sii";
 
+type RolUsuario = 'admin' | 'especialista' | 'recepcion' | 'editor' | null;
+
 export default function AdminDashboard() {
-  // ESTADOS DE AUTENTICACIÓN Y ROLES
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<'admin' | 'editor' | null>(null);
+  const [userRole, setUserRole] = useState<RolUsuario>(null);
+  const [nombreUsuario, setNombreUsuario] = useState("");
   const [inputPassword, setInputPassword] = useState("");
   const [loginError, setLoginError] = useState("");
 
@@ -20,14 +22,14 @@ export default function AdminDashboard() {
   const [blogs, setBlogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Estados SII / Ventas
+  // Estados SII
   const [loadingSii, setLoadingSii] = useState(false);
   const [resultadoSii, setResultadoSii] = useState<any>(null);
 
-  // Formulario Ficha Médica
+  // Formulario Ficha
   const [selectedPacienteEmail, setSelectedPacienteEmail] = useState("");
   const [selectedPacienteNombre, setSelectedPacienteNombre] = useState("");
-  const [especialista, setEspecialista] = useState("Dr. Matías Arancibia");
+  const [especialistaForm, setEspecialistaForm] = useState("Dr. Matías Arancibia");
   const [numSesion, setNumSesion] = useState(1);
   const [evaDolor, setEvaDolor] = useState(5);
   const [subjetivo, setSubjetivo] = useState("");
@@ -54,11 +56,10 @@ export default function AdminDashboard() {
   const [guardandoCampana, setGuardandoCampana] = useState(false);
   const [mensajeCampana, setMensajeCampana] = useState("");
 
-  // Formulario Blog / Contenido
+  // Formulario Blog
   const [blogTitulo, setBlogTitulo] = useState("");
   const [blogCategoria, setBlogCategoria] = useState("Kinesiología");
   const [blogContenido, setBlogContenido] = useState("");
-  const [blogImagen, setBlogImagen] = useState("");
   const [mensajeBlog, setMensajeBlog] = useState("");
 
   const preciosServicios: { [key: string]: number } = {
@@ -69,41 +70,64 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    const savedRole = localStorage.getItem("anluvia_session_role");
-    if (savedRole === "admin" || savedRole === "editor") {
+    const savedRole = localStorage.getItem("anluvia_session_role") as RolUsuario;
+    const savedName = localStorage.getItem("anluvia_session_name") || "";
+    if (savedRole) {
       setIsAuthenticated(true);
-      setUserRole(savedRole as 'admin' | 'editor');
-      if (savedRole === "editor") setActiveTab("contenido");
+      setUserRole(savedRole);
+      setNombreUsuario(savedName);
+      ajustarTabSegunRol(savedRole);
       cargarDatos();
     }
   }, []);
+
+  const ajustarTabSegunRol = (rol: RolUsuario) => {
+    if (rol === 'admin') setActiveTab('dashboard');
+    else if (rol === 'especialista') setActiveTab('fichas');
+    else if (rol === 'recepcion') setActiveTab('agenda');
+    else if (rol === 'editor') setActiveTab('contenido');
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
 
-    // Claves por defecto (se pueden modificar fácilmente)
+    let role: RolUsuario = null;
+    let nombre = "";
+
     if (inputPassword === "anluvia2026") {
-      setIsAuthenticated(true);
-      setUserRole("admin");
-      setActiveTab("dashboard");
-      localStorage.setItem("anluvia_session_role", "admin");
-      cargarDatos();
+      role = "admin";
+      nombre = "Dr. Matías Arancibia (Director)";
+    } else if (inputPassword === "kine2026") {
+      role = "especialista";
+      nombre = "Kinesiólogo Tratante";
+    } else if (inputPassword === "recepcion2026") {
+      role = "recepcion";
+      nombre = "Recepción ANLUVIA";
     } else if (inputPassword === "editor2026") {
+      role = "editor";
+      nombre = "Editor Técnico & CMS";
+    }
+
+    if (role) {
       setIsAuthenticated(true);
-      setUserRole("editor");
-      setActiveTab("contenido");
-      localStorage.setItem("anluvia_session_role", "editor");
+      setUserRole(role);
+      setNombreUsuario(nombre);
+      localStorage.setItem("anluvia_session_role", role);
+      localStorage.setItem("anluvia_session_name", nombre);
+      ajustarTabSegunRol(role);
       cargarDatos();
     } else {
-      setLoginError("🔑 Clave incorrecta. Inténtalo de nuevo.");
+      setLoginError("🔑 Clave incorrecta. Por favor verifica tus credenciales.");
     }
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     setUserRole(null);
+    setNombreUsuario("");
     localStorage.removeItem("anluvia_session_role");
+    localStorage.removeItem("anluvia_session_name");
   };
 
   const cargarDatos = async () => {
@@ -125,16 +149,7 @@ export default function AdminDashboard() {
       if (localCampanas) setCampanas(JSON.parse(localCampanas));
 
       const localBlogs = localStorage.getItem("anluvia_blogs");
-      if (localBlogs) {
-        setBlogs(JSON.parse(localBlogs));
-      } else {
-        const blogsIniciales = [
-          { id: "1", titulo: "Beneficios de la Kinesiología Dermatofuncional", categoria: "Estética", fecha: "2026-07-15", resumen: "Descubre cómo la kinesiología acelera la recuperación post-quirúrgica..." },
-          { id: "2", titulo: "Cuidados Esenciales para la Piel en Invierno", categoria: "Wellness", fecha: "2026-07-20", resumen: "Recomendaciones médicas para mantener la hidratación cutánea..." }
-        ];
-        setBlogs(blogsIniciales);
-        localStorage.setItem("anluvia_blogs", JSON.stringify(blogsIniciales));
-      }
+      if (localBlogs) setBlogs(JSON.parse(localBlogs));
     } catch (err) {
       console.error(err);
     } finally {
@@ -198,16 +213,15 @@ export default function AdminDashboard() {
     e.preventDefault();
     setGuardandoEvolucion(true);
     try {
-      const { error } = await supabase.from("evoluciones").insert([{ paciente_email: selectedPacienteEmail, paciente_nombre: selectedPacienteNombre, especialista, numero_sesion: numSesion, eva_dolor: evaDolor, subjetivo, objetivo, tratamiento, indicaciones }]);
+      const { error } = await supabase.from("evoluciones").insert([{ paciente_email: selectedPacienteEmail, paciente_nombre: selectedPacienteNombre, especialista: especialistaForm, numero_sesion: numSesion, eva_dolor: evaDolor, subjetivo, objetivo, tratamiento, indicaciones }]);
       if (error) setMensajeFicha("⚠️ " + error.message);
       else {
-        setMensajeFicha("🎉 ¡Evolución registrada!");
+        setMensajeFicha("🎉 ¡Evolución registrada correctamente!");
         setSubjetivo(""); setObjetivo(""); setTratamiento(""); setIndicaciones("");
         cargarDatos();
       }
-    } catch (err: any) {
-      setMensajeFicha("⚠️ Error al guardar.");
-    } finally { setGuardandoEvolucion(false); }
+    } catch (err: any) { setMensajeFicha("⚠️ Error al guardar."); }
+    finally { setGuardandoEvolucion(false); }
   };
 
   const guardarGasto = (e: React.FormEvent) => {
@@ -239,7 +253,7 @@ export default function AdminDashboard() {
     const actualizados = [nuevoBlog, ...blogs];
     setBlogs(actualizados);
     localStorage.setItem("anluvia_blogs", JSON.stringify(actualizados));
-    setMensajeBlog("✅ Artículo de Blog publicado con éxito."); setBlogTitulo(""); setBlogContenido("");
+    setMensajeBlog("✅ Artículo de Blog publicado."); setBlogTitulo(""); setBlogContenido("");
   };
 
   const exportarPDF = () => { if (!selectedPacienteEmail) return alert("Selecciona un paciente primero."); window.print(); };
@@ -261,18 +275,16 @@ export default function AdminDashboard() {
   const costoPorCitaCPA = totalCitasAds > 0 ? Math.round(totalInversionAds / totalCitasAds) : 0;
   const roasMarketing = totalInversionAds > 0 ? ((totalCitasAds * 48000) / totalInversionAds).toFixed(1) : "0.0";
 
-  const serviciosConteo: { [key: string]: number } = {};
-  reservas.forEach((r) => { serviciosConteo[r.servicio] = (serviciosConteo[r.servicio] || 0) + 1; });
   const evolucionesPacienteActual = evoluciones.filter((e) => e.paciente_email === selectedPacienteEmail);
 
-  // --- PANTALLA DE LOGIN SI NO ESTÁ AUTENTICADO ---
+  // --- LOGIN ---
   if (!isAuthenticated) {
     return (
       <div style={{ backgroundColor: "#FBF9F6", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "sans-serif" }}>
-        <div style={{ backgroundColor: "#FFFFFF", padding: "3rem", borderRadius: "24px", boxShadow: "0 20px 40px rgba(0,0,0,0.06)", border: "1px solid #F4EEE8", width: "100%", maxWidth: "420px", textAlign: "center" }}>
+        <div style={{ backgroundColor: "#FFFFFF", padding: "3rem", borderRadius: "24px", boxShadow: "0 20px 40px rgba(0,0,0,0.06)", border: "1px solid #F4EEE8", width: "100%", maxWidth: "440px", textAlign: "center" }}>
           <span style={{ fontSize: "2rem", fontWeight: 700, fontFamily: "serif", letterSpacing: "0.05em", color: "#1F1F1F" }}>ANLUVIA</span>
-          <div style={{ fontSize: "0.75rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8B2434", fontWeight: 700, marginTop: "0.2rem", marginBottom: "2rem" }}>
-            ACCESO PRIVADO AL PANEL
+          <div style={{ fontSize: "0.7rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8B2434", fontWeight: 700, marginTop: "0.2rem", marginBottom: "2rem" }}>
+            SISTEMA DE GESTIÓN INTEGRAL
           </div>
 
           <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
@@ -284,7 +296,7 @@ export default function AdminDashboard() {
 
             <div style={{ textAlign: "left" }}>
               <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.4rem" }}>
-                Ingresa tu Clave de Acceso:
+                Ingresa tu Clave de Rol:
               </label>
               <input
                 type="password"
@@ -296,37 +308,39 @@ export default function AdminDashboard() {
               />
             </div>
 
-            <button type="submit" style={{ backgroundColor: "#8B2434", color: "#FFFFFF", padding: "0.9rem", borderRadius: "9999px", border: "none", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer", transition: "all 0.3s ease" }}>
+            <button type="submit" style={{ backgroundColor: "#8B2434", color: "#FFFFFF", padding: "0.9rem", borderRadius: "9999px", border: "none", fontWeight: 700, fontSize: "0.95rem", cursor: "pointer" }}>
               Ingresar al Panel →
             </button>
           </form>
 
-          <div style={{ marginTop: "2rem", paddingTop: "1.5rem", borderTop: "1px solid #F4EEE8", fontSize: "0.75rem", color: "#888", textAlign: "left", lineHeight: "1.5" }}>
-            💡 <strong>Claves por defecto:</strong><br />
-            • Admin Total: <code>anluvia2026</code><br />
-            • Técnico / Editor: <code>editor2026</code>
+          <div style={{ marginTop: "2rem", paddingTop: "1.5rem", borderTop: "1px solid #F4EEE8", fontSize: "0.75rem", color: "#666", textAlign: "left", lineHeight: "1.6" }}>
+            🔐 <strong>Acceso según Perfil de Trabajo:</strong><br />
+            • <strong>Director / Admin:</strong> <code>anluvia2026</code><br />
+            • <strong>Especialista / Kinesiólogo:</strong> <code>kine2026</code><br />
+            • <strong>Recepción / Caja:</strong> <code>recepcion2026</code><br />
+            • <strong>Técnico / Editor Web:</strong> <code>editor2026</code>
           </div>
         </div>
       </div>
     );
   }
 
-  // --- PANEL PRINCIPAL UNA VEZ AUTENTICADO ---
+  // --- PANEL SEGÚN ROL ---
   return (
     <div style={{ backgroundColor: "#FBF9F6", color: "#1F1F1F", fontFamily: "sans-serif", minHeight: "100vh", display: "flex" }}>
       
-      {/* Sidebar Lateral Adaptativo según el Rol */}
+      {/* Sidebar Personalizada */}
       <aside className="no-print" style={{ width: "260px", borderRight: "1px solid #F4EEE8", backgroundColor: "#FFFFFF", padding: "2rem 1.5rem", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
         <div>
           <div style={{ marginBottom: "2rem" }}>
             <span style={{ fontSize: "1.6rem", fontWeight: 700, letterSpacing: "0.05em", fontFamily: "serif" }}>ANLUVIA</span>
-            <div style={{ fontSize: "0.65rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8B2434", fontWeight: 700, marginTop: "0.2rem" }}>
-              {userRole === 'admin' ? 'PANEL ADMINISTRADOR' : 'PANEL EDITOR TÉCNICO'}
+            <div style={{ fontSize: "0.65rem", letterSpacing: "0.15em", textTransform: "uppercase", color: "#8B2434", fontWeight: 700, marginTop: "0.2rem" }}>
+              ROL: {userRole?.toUpperCase()}
             </div>
           </div>
 
           <nav style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
-            {/* OPCIONES SOLO ADMINISTRADOR */}
+            {/* ADMIN */}
             {userRole === 'admin' && (
               <>
                 <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'dashboard' ? 700 : 500, backgroundColor: activeTab === 'dashboard' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('dashboard')}>
@@ -344,35 +358,46 @@ export default function AdminDashboard() {
               </>
             )}
 
-            {/* OPCIONES COMPARTIDAS / EDITOR */}
-            <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'contenido' ? 700 : 500, backgroundColor: activeTab === 'contenido' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('contenido')}>
-              ✍️ Contenido & Blog (CMS)
-            </div>
+            {/* RECEPCION / ADMIN */}
+            {(userRole === 'admin' || userRole === 'recepcion') && (
+              <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'ventas' ? 700 : 500, backgroundColor: activeTab === 'ventas' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('ventas')}>
+                🧾 Caja & Facturación SII
+              </div>
+            )}
+
+            {/* ESPECIALISTA / ADMIN */}
+            {(userRole === 'admin' || userRole === 'especialista') && (
+              <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'fichas' ? 700 : 500, backgroundColor: activeTab === 'fichas' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('fichas')}>
+                🩺 Fichas Kinésicas (SOAP)
+              </div>
+            )}
+
+            {/* EDITOR / ADMIN */}
+            {(userRole === 'admin' || userRole === 'editor') && (
+              <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'contenido' ? 700 : 500, backgroundColor: activeTab === 'contenido' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('contenido')}>
+                ✍️ Contenido & Blog (CMS)
+              </div>
+            )}
+
+            {/* AGENDA GENERAL (TODOS) */}
             <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'agenda' ? 700 : 500, backgroundColor: activeTab === 'agenda' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('agenda')}>
               📅 Agenda & Citas ({reservas.length})
             </div>
-            {userRole === 'admin' && (
-              <div style={{ padding: "0.85rem 1.25rem", borderRadius: "12px", cursor: "pointer", fontWeight: activeTab === 'fichas' ? 700 : 500, backgroundColor: activeTab === 'fichas' ? '#F4EEE8' : 'transparent' }} onClick={() => setActiveTab('fichas')}>
-                🩺 Fichas & Evolución Kinésica
-              </div>
-            )}
           </nav>
         </div>
 
         <div style={{ borderTop: "1px solid #F4EEE8", paddingTop: "1.25rem" }}>
-          <div style={{ fontWeight: 600, fontSize: "0.85rem" }}>
-            {userRole === 'admin' ? 'Dr. Matías Arancibia (Admin)' : 'Editor Técnico Web'}
-          </div>
+          <div style={{ fontWeight: 600, fontSize: "0.85rem" }}>{nombreUsuario}</div>
           <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#8B2434", fontSize: "0.8rem", cursor: "pointer", fontWeight: 700, marginTop: "0.5rem", padding: 0 }}>
             🔒 Cerrar Sesión
           </button>
         </div>
       </aside>
 
-      {/* Área Principal */}
+      {/* Área de Trabajo */}
       <main style={{ flex: 1, padding: "2.5rem 3rem", overflowY: "auto" }}>
 
-        {/* DASHBOARD (SOLO ADMIN) */}
+        {/* DASHBOARD (ADMIN) */}
         {activeTab === 'dashboard' && userRole === 'admin' && (
           <div className="no-print">
             <h1 style={{ fontSize: "2.25rem", margin: "0 0 2rem 0", fontFamily: "serif" }}>Indicadores de Negocio</h1>
@@ -382,98 +407,92 @@ export default function AdminDashboard() {
                 <div style={{ fontSize: "1.8rem", fontWeight: 700, marginTop: "0.3rem" }}>${ingresosBrutos.toLocaleString('es-CL')} CLP</div>
               </div>
               <div style={{ backgroundColor: "#FFF", padding: "1.5rem", borderRadius: "20px", border: "1px solid #E2E8F0" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#8B2434", textTransform: "uppercase" }}>Compras & Gastos</span>
-                <div style={{ fontSize: "1.8rem", fontWeight: 700, color: "#8B2434", marginTop: "0.3rem" }}>${egresosTotales.toLocaleString('es-CL')} CLP</div>
+                <span style={{ fontSize: "0.75rem", fontWeight 700, color: "#8B2434", textTransform: "uppercase" }}>Gastos</span>
+                <div style={{ fontSize: "1.8rem", fontWeight 700, color: "#8B2434", marginTop: "0.3rem" }}>${egresosTotales.toLocaleString('es-CL')} CLP</div>
               </div>
               <div style={{ backgroundColor: "#FFF", padding: "1.5rem", borderRadius: "20px", border: "1px solid #E2E8F0" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#137333", textTransform: "uppercase" }}>Ganancia Neta</span>
-                <div style={{ fontSize: "1.8rem", fontWeight: 700, color: gananciaNeta >= 0 ? "#137333" : "#D93025", marginTop: "0.3rem" }}>${gananciaNeta.toLocaleString('es-CL')} CLP</div>
+                <span style={{ fontSize: "0.75rem", fontWeight 700, color: "#137333", textTransform: "uppercase" }}>Ganancia Neta</span>
+                <div style={{ fontSize: "1.8rem", fontWeight 700, color: gananciaNeta >= 0 ? "#137333" : "#D93025", marginTop: "0.3rem" }}>${gananciaNeta.toLocaleString('es-CL')} CLP</div>
               </div>
               <div style={{ backgroundColor: "#FFF", padding: "1.5rem", borderRadius: "20px", border: "1px solid #E2E8F0" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#7D8E7C", textTransform: "uppercase" }}>Margen</span>
-                <div style={{ fontSize: "1.8rem", fontWeight: 700, marginTop: "0.3rem" }}>{margenRentabilidad}%</div>
+                <span style={{ fontSize: "0.75rem", fontWeight 700, color: "#7D8E7C", textTransform: "uppercase" }}>Margen</span>
+                <div style={{ fontSize: "1.8rem", fontWeight 700, marginTop: "0.3rem" }}>{margenRentabilidad}%</div>
               </div>
             </div>
           </div>
         )}
 
-        {/* PESTAÑA NUEVA: CONTENIDO & BLOG (CMS TÉCNICO) */}
-        {activeTab === 'contenido' && (
-          <div className="no-print">
-            <h1 style={{ fontSize: "2.25rem", margin: "0 0 2rem 0", fontFamily: "serif" }}>Gestión de Contenido & Blog</h1>
-            
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "2rem" }}>
-              {/* Formulario Crear Blog */}
-              <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid #E2E8F0", padding: "2rem" }}>
-                <h3 style={{ fontSize: "1.3rem", marginTop: 0, color: "#8B2434", fontFamily: "serif" }}>+ Publicar Nuevo Artículo en Blog</h3>
+        {/* FICHAS MÉDICAS (ESPECIALISTA Y ADMIN) */}
+        {activeTab === 'fichas' && (userRole === 'admin' || userRole === 'especialista') && (
+          <div>
+            <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+              <h1 style={{ fontSize: "2.25rem", margin: 0, fontFamily: "serif" }}>Ficha Médica & Evolución SOAP</h1>
+              <button onClick={exportarPDF} disabled={!selectedPacienteEmail} style={{ backgroundColor: "#8B2434", color: "#FFF", padding: "0.75rem 1.5rem", borderRadius: "9999px", border: "none", fontWeight: 700, cursor: "pointer", opacity: !selectedPacienteEmail ? 0.5 : 1 }}>
+                📄 Descargar Ficha PDF
+              </button>
+            </div>
 
-                {mensajeBlog && (
-                  <div style={{ padding: "0.75rem", backgroundColor: "#F4EEE8", borderRadius: "10px", color: "#7D8E7C", fontWeight: 600, fontSize: "0.85rem", marginBottom: "1rem" }}>
-                    {mensajeBlog}
-                  </div>
-                )}
+            <div className="no-print" style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid #E2E8F0", padding: "1.5rem", marginBottom: "2rem" }}>
+              <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "#666", marginBottom: "0.5rem" }}>Seleccionar Paciente Atendido:</label>
+              <select value={selectedPacienteEmail} onChange={(e) => {
+                const email = e.target.value;
+                const p = pacientesUnicos.find((item) => item.email === email);
+                if (p) seleccionarParaFicha(p.email, p.nombre);
+              }} style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid #ccc" }}>
+                <option value="">-- Selecciona un Paciente --</option>
+                {pacientesUnicos.map((p) => (
+                  <option key={p.email} value={p.email}>{p.nombre} ({p.email})</option>
+                ))}
+              </select>
+            </div>
 
-                <form onSubmit={guardarBlog} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Título del Artículo *</label>
-                    <input type="text" placeholder="Ej. Avances en Kinesiología Funcional" value={blogTitulo} onChange={(e) => setBlogTitulo(e.target.value)} style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid #ccc" }} required />
-                  </div>
-
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Categoría *</label>
-                    <select value={blogCategoria} onChange={(e) => setBlogCategoria(e.target.value)} style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid #ccc" }}>
-                      <option value="Kinesiología">Kinesiología & Rehabilitación</option>
-                      <option value="Estética">Estética Médica & Facial</option>
-                      <option value="Wellness">Wellness & Estilo de Vida</option>
-                      <option value="Novedades">Novedades ANLUVIA</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666", marginBottom: "0.3rem" }}>Contenido del Post *</label>
-                    <textarea placeholder="Escribe aquí el texto principal..." value={blogContenido} onChange={(e) => setBlogContenido(e.target.value)} style={{ width: "100%", padding: "0.75rem", borderRadius: "10px", border: "1px solid #ccc", minHeight: "120px" }} required />
-                  </div>
-
-                  <button type="submit" style={{ width: "100%", backgroundColor: "#7D8E7C", color: "#FFF", padding: "0.85rem", borderRadius: "9999px", border: "none", fontWeight: 600, cursor: "pointer" }}>
-                    ✍️ Publicar Artículo
-                  </button>
-                </form>
-              </div>
-
-              {/* Lista de Publicaciones */}
-              <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid #E2E8F0", padding: "2rem" }}>
-                <h3 style={{ fontSize: "1.3rem", marginTop: 0, color: "#1F1F1F", marginBottom: "1.5rem", fontFamily: "serif" }}>
-                  Artículos Publicados ({blogs.length})
-                </h3>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                  {blogs.map((b) => (
-                    <div key={b.id} style={{ border: "1px solid #F4EEE8", borderRadius: "12px", padding: "1.25rem", backgroundColor: "#FBF9F6" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
-                        <span style={{ fontWeight: 700, color: "#8B2434", fontSize: "1rem" }}>{b.titulo}</span>
-                        <span style={{ fontSize: "0.8rem", color: "#666" }}>{b.fecha}</span>
-                      </div>
-                      <span style={{ backgroundColor: "#F4EEE8", padding: "0.2rem 0.6rem", borderRadius: "9999px", fontSize: "0.75rem", fontWeight: 600 }}>{b.categoria}</span>
-                      <p style={{ fontSize: "0.85rem", color: "#555", marginTop: "0.5rem" }}>{b.resumen}</p>
+            {selectedPacienteEmail ? (
+              <div className="no-print" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem" }}>
+                <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid #E2E8F0", padding: "2rem" }}>
+                  <h3 style={{ fontSize: "1.3rem", marginTop: 0, color: "#8B2434", fontFamily: "serif" }}>+ Registrar Nueva Evolución (Sesión #{numSesion})</h3>
+                  {mensajeFicha && <div style={{ padding: "0.75rem", backgroundColor: "#F4EEE8", borderRadius: "10px", color: "#7D8E7C", fontWeight: 600, fontSize: "0.85rem", marginBottom: "1rem" }}>{mensajeFicha}</div>}
+                  <form onSubmit={guardarEvolucion} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 600, color: "#666" }}>Dolor EVA: <strong>{evaDolor}/10</strong></label>
+                      <input type="range" min="0" max="10" value={evaDolor} onChange={(e) => setEvaDolor(Number(e.target.value))} style={{ width: "100%", accentColor: "#8B2434" }} />
                     </div>
-                  ))}
+                    <div><label style={{ fontSize: "0.8rem", fontWeight: 600, color: "#666" }}>S (Subjetivo):</label><textarea value={subjetivo} onChange={(e) => setSubjetivo(e.target.value)} style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid #ccc" }} /></div>
+                    <div><label style={{ fontSize: "0.8rem", fontWeight: 600, color: "#666" }}>O (Objetivo):</label><textarea value={objetivo} onChange={(e) => setObjetivo(e.target.value)} style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid #ccc" }} /></div>
+                    <div><label style={{ fontSize: "0.8rem", fontWeight: 600, color: "#666" }}>A/P (Tratamiento):</label><textarea value={tratamiento} onChange={(e) => setTratamiento(e.target.value)} style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid #ccc" }} /></div>
+                    <div><label style={{ fontSize: "0.8rem", fontWeight: 600, color: "#666" }}>Indicaciones:</label><textarea value={indicaciones} onChange={(e) => setIndicaciones(e.target.value)} style={{ width: "100%", padding: "0.5rem", borderRadius: "8px", border: "1px solid #ccc" }} /></div>
+                    <button type="submit" disabled={guardandoEvolucion} style={{ backgroundColor: "#7D8E7C", color: "#FFF", padding: "0.85rem", borderRadius: "9999px", border: "none", fontWeight: 600, cursor: "pointer" }}>Guardar Evolución Kinésica</button>
+                  </form>
+                </div>
+                <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid #E2E8F0", padding: "2rem" }}>
+                  <h3 style={{ fontSize: "1.3rem", marginTop: 0, color: "#7D8E7C", fontFamily: "serif" }}>Historial: {selectedPacienteNombre}</h3>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxHeight: "450px", overflowY: "auto" }}>
+                    {evolucionesPacienteActual.map((evo) => (
+                      <div key={evo.id} style={{ border: "1px solid #F4EEE8", borderRadius: "12px", padding: "1rem", backgroundColor: "#FBF9F6" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontWeight: 700, color: "#8B2434" }}>Sesión #{evo.numero_sesion}</span><span>EVA: {evo.eva_dolor}/10</span></div>
+                        <div style={{ fontSize: "0.85rem", color: "#4A4A4A", marginTop: "0.3rem" }}>{evo.tratamiento}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <p style={{ color: "#666", textAlign: "center", padding: "3rem" }}>Selecciona un paciente del menú desplegable superior.</p>
+            )}
           </div>
         )}
 
-        {/* AGENDA COMPARTIDA */}
+        {/* AGENDA GENERAL (TODOS) */}
         {activeTab === 'agenda' && (
           <div className="no-print">
-            <h1 style={{ fontSize: "2.25rem", margin: "0 0 2rem 0", fontFamily: "serif" }}>Agenda de Atenciones</h1>
+            <h1 style={{ fontSize: "2.25rem", margin: "0 0 2rem 0", fontFamily: "serif" }}>Agenda de Atenciones Operativa</h1>
             <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid #E2E8F0", padding: "2rem" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
                 <thead>
                   <tr style={{ backgroundColor: "#F4EEE8" }}>
                     <th style={{ padding: "0.75rem", textAlign: "left" }}>Fecha & Hora</th>
                     <th style={{ padding: "0.75rem", textAlign: "left" }}>Paciente</th>
-                    <th style={{ padding: "0.75rem", textAlign: "left" }}>Tratamiento</th>
+                    <th style={{ padding: "0.75rem", textAlign: "left" }}>Tratamiento Solicítado</th>
+                    <th style={{ padding: "0.75rem", textAlign: "left" }}>Especialista</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -482,6 +501,7 @@ export default function AdminDashboard() {
                       <td style={{ padding: "0.75rem" }}><strong>{r.fecha}</strong> ({r.hora} hrs)</td>
                       <td style={{ padding: "0.75rem" }}>{r.paciente_nombre}</td>
                       <td style={{ padding: "0.75rem" }}>{r.servicio}</td>
+                      <td style={{ padding: "0.75rem" }}>{r.especialista}</td>
                     </tr>
                   ))}
                 </tbody>
