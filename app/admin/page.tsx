@@ -119,8 +119,6 @@ export default function AdminDashboard() {
 
       {/* Area Principal */}
       <main style={{ flex: 1, padding: "2.5rem 3rem", overflowY: "auto" }}>
-        
-        {/* Top Title & Actions */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2.5rem" }}>
           <div>
             <span style={{ fontSize: "0.8rem", fontWeight: 600, color: "#7D8E7C", letterSpacing: "0.1em", textTransform: "uppercase" }}>SEDE PRINCIPAL</span>
@@ -161,10 +159,10 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Tabla de Citas del Día */}
+        {/* Tabla Citas */}
         <div style={{ backgroundColor: "#FFFFFF", borderRadius: "20px", border: "1px solid rgba(167, 183, 165, 0.3)", padding: "2rem", boxShadow: "0 10px 30px -10px rgba(0,0,0,0.03)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-            <h3 className="playfair" style={{ fontSize: "1.4rem", margin: 0 }}>Agenda del Día — Jueves 23 de Julio</h3>
+            <h3 className="playfair" style={{ fontSize: "1.4rem", margin: 0 }}>Agenda del Día</h3>
             <span style={{ fontSize: "0.85rem", color: "#7D8E7C", fontWeight: 600 }}>Sede Las Condes</span>
           </div>
 
@@ -204,18 +202,9 @@ export default function AdminDashboard() {
                 <td><span className="badge-status" style={{ backgroundColor: "#FEF7E0", color: "#B06000" }}>Pendiente</span></td>
                 <td><button style={{ border: "none", background: "none", color: "#7D8E7C", cursor: "pointer", fontWeight: 600 }}>Ver Ficha →</button></td>
               </tr>
-              <tr>
-                <td style={{ fontWeight: 600 }}>15:30 - 16:45</td>
-                <td>Isadora Prieto</td>
-                <td>Masoterapia & Spa Integral</td>
-                <td>Dra. Sofía Ugarte</td>
-                <td><span className="badge-status" style={{ backgroundColor: "#E6F4EA", color: "#137333" }}>Confirmada</span></td>
-                <td><button style={{ border: "none", background: "none", color: "#7D8E7C", cursor: "pointer", fontWeight: 600 }}>Ver Ficha →</button></td>
-              </tr>
             </tbody>
           </table>
         </div>
-
       </main>
     </div>
   );
